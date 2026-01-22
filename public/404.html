@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="refresh" content="0; url=/md/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redirecting…</title>
+    <script>
+      // Project Pages SPA fallback.
+      // Redirect unknown paths back to /md/ and keep the path in hash.
+      (function () {
+        var base = '/md/';
+        var loc = window.location;
+        var path = loc.pathname;
+        if (!path.startsWith(base)) {
+          loc.replace(base);
+          return;
+        }
+        var rest = path.slice(base.length);
+        var search = loc.search || '';
+        var hash = loc.hash || '';
+        // Preserve deep link after base as hash route.
+        loc.replace(base + '#/' + rest + search + hash);
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Redirecting…</p>
+  </body>
+</html>
