@@ -9,7 +9,7 @@ export type WorkspaceBootstrap = {
   currentFileId: string;
 };
 
-const DEFAULT_README = `# 墨档\n\n这是一个纯前端静态 Markdown 编辑器：\n\n- 数据只保存在你的浏览器本地（localStorage + IndexedDB）\n- 不做任何外部上传\n\n## 快捷操作\n\n- 左侧文件树：新建/重命名/删除/移动\n- 中间编辑，右侧预览\n\n> TODO: 导出 HTML/PDF、拖拽移动等\n`;
+const DEFAULT_README = `# 墨档\n\n这是一个纯前端静态 Markdown 编辑器：\n\n- 数据只保存在你的浏览器本地（localStorage + IndexedDB）\n- 不做任何外部上传\n\n## 快捷操作\n\n- 左侧文件树：新建/重命名/删除/移动\n- 中间编辑，右侧预览\n\n> 待办：导出 HTML/PDF、拖拽移动等\n`;
 
 export async function bootstrapWorkspace(): Promise<WorkspaceBootstrap> {
   const settings = loadSettings();

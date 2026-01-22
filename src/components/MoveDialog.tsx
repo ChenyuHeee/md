@@ -2,13 +2,19 @@ import React, { useMemo, useState } from 'react';
 import { Modal } from './Modal';
 import type { TreeState } from '../storage/tree';
 import { listChildren } from '../storage/tree';
+import type { Language } from '../i18n/translations';
+import { useI18n } from '../i18n/useI18n';
+import { Button } from './ui/Button';
+import { Select } from './ui/Select';
 
 export function MoveDialog(props: {
   tree: TreeState;
   currentId: string;
+  language: Language;
   onMoveTo: (folderId: string) => void;
   onClose: () => void;
 }) {
+  const { t } = useI18n(props.language);
   const folders = useMemo(() => {
     const out: Array<{ id: string; path: string }> = [];
 
@@ -36,37 +42,36 @@ export function MoveDialog(props: {
 
   return (
     <Modal
-      title="移动到…"
+      title={t('dialog.move.title')}
       onClose={props.onClose}
       footer={
         <>
-          <button className="modang-btn" onClick={props.onClose}>
-            取消
-          </button>
-          <button
-            className="modang-btn"
+          <Button variant="secondary" onClick={props.onClose}>
+            {t('dialog.move.cancel')}
+          </Button>
+          <Button
             onClick={() => {
               props.onMoveTo(dest);
               props.onClose();
             }}
           >
-            移动
-          </button>
+            {t('dialog.move.confirm')}
+          </Button>
         </>
       }
     >
       <div className="row">
-        <div className="modang-muted">目标文件夹</div>
-        <select className="modang-input" value={dest} onChange={(e) => setDest(e.target.value)}>
+        <div className="subtle">{t('dialog.move.target')}</div>
+        <Select value={dest} onChange={(e) => setDest(e.target.value)}>
           {folders.map((f) => (
             <option key={f.id} value={f.id} disabled={f.id === props.currentId}>
               {f.path}
             </option>
           ))}
-        </select>
+        </Select>
       </div>
 
-      <div className="modang-muted">TODO：未来可支持拖拽移动。</div>
+      <div className="subtle">{t('dialog.move.todo')}</div>
     </Modal>
   );
 }

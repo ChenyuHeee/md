@@ -8,14 +8,14 @@ export function Modal(props: {
 }) {
   return (
     <div
-      className="modang-modal-backdrop"
+      className="modalBackdrop"
       role="dialog"
       aria-modal="true"
       onMouseDown={(e: React.MouseEvent<HTMLDivElement>) => {
         if (e.target === e.currentTarget) props.onClose();
       }}
     >
-      <div className="modang-modal">
+      <div className="modal">
         <header>{props.title}</header>
         <div className="content">{props.children}</div>
         <footer>{props.footer}</footer>

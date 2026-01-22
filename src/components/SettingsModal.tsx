@@ -1,46 +1,63 @@
 import React, { useState } from 'react';
 import type { ThemeMode } from '../types/models';
+import type { Language } from '../i18n/translations';
+import { useI18n } from '../i18n/useI18n';
 import { Modal } from './Modal';
+import { Button } from './ui/Button';
+import { Select } from './ui/Select';
 
 export function SettingsModal(props: {
   themeMode: ThemeMode;
+  language: Language;
   onChangeTheme: (mode: ThemeMode) => void;
+  onChangeLanguage: (lang: Language) => void;
   onClose: () => void;
 }) {
+  const { t } = useI18n(props.language);
   const [mode, setMode] = useState<ThemeMode>(props.themeMode);
+  const [lang, setLang] = useState<Language>(props.language);
 
   return (
     <Modal
-      title="设置"
+      title={t('dialog.settings.title')}
       onClose={props.onClose}
       footer={
         <>
-          <button className="modang-btn" onClick={props.onClose}>
-            取消
-          </button>
-          <button
-            className="modang-btn"
+          <Button variant="secondary" onClick={props.onClose}>
+            {t('dialog.settings.cancel')}
+          </Button>
+          <Button
             onClick={() => {
               props.onChangeTheme(mode);
+              props.onChangeLanguage(lang);
               props.onClose();
             }}
           >
-            保存
-          </button>
+            {t('dialog.settings.save')}
+          </Button>
         </>
       }
     >
       <div className="row">
-        <div className="modang-muted">主题</div>
-        <select className="modang-input" value={mode} onChange={(e) => setMode(e.target.value as ThemeMode)}>
-          <option value="system">跟随系统</option>
-          <option value="light">浅色</option>
-          <option value="dark">深色</option>
-        </select>
+        <div className="subtle">{t('dialog.settings.theme')}</div>
+        <Select value={mode} onChange={(e) => setMode(e.target.value as ThemeMode)}>
+          <option value="system">{t('theme.system')}</option>
+          <option value="light">{t('theme.light')}</option>
+          <option value="dark">{t('theme.dark')}</option>
+        </Select>
       </div>
 
-      <div className="modang-muted">
-        隐私说明：墨档不包含任何自建后端，所有数据仅保存在你的浏览器本地（localStorage + IndexedDB）。
+      <div className="row">
+        <div className="subtle">{t('dialog.settings.language')}</div>
+        <Select value={lang} onChange={(e) => setLang(e.target.value as Language)}>
+          <option value="zh-CN">{t('lang.zh')}</option>
+          <option value="en">{t('lang.en')}</option>
+        </Select>
+      </div>
+
+      <div className="subtle" style={{ lineHeight: 1.6 }}>
+        <strong style={{ color: 'var(--text-1)' }}>{t('dialog.settings.privacyTitle')}</strong>
+        <div>{t('dialog.settings.privacyBody')}</div>
       </div>
     </Modal>
   );

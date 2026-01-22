@@ -1,11 +1,20 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  FilePlus2,
+  FolderPlus,
+  Pencil,
+  Trash2,
+  MoveRight,
+  Download,
+  Settings as SettingsIcon,
+} from 'lucide-react';
 import { FileTree } from '../components/FileTree';
 import { Splitter } from '../components/Splitter';
 import { EditorPane } from '../components/EditorPane';
 import { PreviewPane } from '../components/PreviewPane';
-import { Toolbar } from '../components/Toolbar';
 import { SettingsModal } from '../components/SettingsModal';
 import { MoveDialog } from '../components/MoveDialog';
+import { Button, IconButton } from '../components/ui/Button';
 import type { Settings, ThemeMode } from '../types/models';
 import {
   bootstrapWorkspace,
@@ -27,6 +36,8 @@ import {
 import { loadSettings, saveSettings, setThemeMode } from '../storage/settings';
 import { useTheme } from './useTheme';
 import { deleteFileContent } from '../storage/db';
+import { useI18n } from '../i18n/useI18n';
+import type { Language } from '../i18n/translations';
 
 function debounce<T extends (...args: any[]) => void>(fn: T, waitMs: number) {
   let t: number | null = null;
@@ -53,6 +64,8 @@ export function AppShell() {
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const themeMode = settings.themeMode;
   const { resolvedTheme } = useTheme(themeMode);
+  const language = (settings.language ?? 'zh-CN') as Language;
+  const { t } = useI18n(language);
 
   const [tree, setTree] = useState<TreeState | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -171,12 +184,12 @@ export function AppShell() {
   };
 
   const doNewFile = useCallback(async () => {
-    const t = requireTree();
-    const parentId = resolveParentFolderId(t, selectedId);
-    const name = prompt('新建文件名（例如 note.md）', 'untitled.md');
+    const treeState = requireTree();
+    const parentId = resolveParentFolderId(treeState, selectedId);
+    const name = prompt(t('prompt.newFile'), 'untitled.md');
     if (!name) return;
 
-    const { tree: nextTree, id } = createFile(t, parentId, name);
+    const { tree: nextTree, id } = createFile(treeState, parentId, name);
     setTree(nextTree);
     persistTree(nextTree);
 
@@ -185,47 +198,47 @@ export function AppShell() {
 
     await saveFileText(id, '');
     await openFile(id);
-  }, [openFile, selectedId, tree]);
+  }, [openFile, selectedId, tree, t]);
 
   const doNewFolder = useCallback(() => {
-    const t = requireTree();
-    const parentId = resolveParentFolderId(t, selectedId);
-    const name = prompt('新建文件夹名', 'New Folder');
+    const treeState = requireTree();
+    const parentId = resolveParentFolderId(treeState, selectedId);
+    const name = prompt(t('prompt.newFolder'), t('default.newFolderName'));
     if (!name) return;
 
-    const { tree: nextTree, id } = createFolder(t, parentId, name);
+    const { tree: nextTree, id } = createFolder(treeState, parentId, name);
     setTree(nextTree);
     persistTree(nextTree);
     setExpanded((prev) => new Set(prev).add(parentId).add(id));
-  }, [selectedId, tree]);
+  }, [selectedId, tree, t]);
 
   const doRename = useCallback(() => {
-    const t = requireTree();
+    const treeState = requireTree();
     const id = requireSelected();
-    const node = t.nodes[id];
+    const node = treeState.nodes[id];
     if (!node) return;
 
-    const nextName = prompt('重命名', node.name);
+    const nextName = prompt(t('prompt.rename'), node.name);
     if (!nextName || nextName === node.name) return;
 
-    const nextTree = renameNode(t, id, nextName);
+    const nextTree = renameNode(treeState, id, nextName);
     setTree(nextTree);
     persistTree(nextTree);
-  }, [selectedId, tree]);
+  }, [selectedId, tree, t]);
 
   const doDelete = useCallback(() => {
-    const t = requireTree();
+    const treeState = requireTree();
     const id = requireSelected();
-    const node = t.nodes[id];
+    const node = treeState.nodes[id];
     if (!node) return;
     if (!node.parentId) return;
 
-    const ok = confirm(`确定删除：${node.name} ？（文件夹将递归删除）`);
+    const ok = confirm(t('confirm.delete', { name: node.name }));
     if (!ok) return;
 
-    const fileIdsToDelete = collectSubtreeFileIds(t, id);
+    const fileIdsToDelete = collectSubtreeFileIds(treeState, id);
 
-    const { tree: nextTree, deletedIds } = deleteNode(t, id);
+    const { tree: nextTree, deletedIds } = deleteNode(treeState, id);
     setTree(nextTree);
     persistTree(nextTree);
 
@@ -239,14 +252,14 @@ export function AppShell() {
     }
 
     setSelectedId(nextTree.rootId);
-  }, [currentFileId, selectedId, tree]);
+  }, [currentFileId, selectedId, tree, t]);
 
   const doMoveTo = useCallback(
     (folderId: string) => {
-      const t = requireTree();
+      const treeState = requireTree();
       const id = requireSelected();
       try {
-        const nextTree = moveNode(t, id, folderId);
+        const nextTree = moveNode(treeState, id, folderId);
         setTree(nextTree);
         persistTree(nextTree);
         setExpanded((prev) => new Set(prev).add(folderId));
@@ -276,17 +289,25 @@ export function AppShell() {
     [setSettings],
   );
 
+  const onChangeLanguage = useCallback(
+    (lang: Language) => {
+      const next: Settings = { ...loadSettings(), language: lang };
+      saveSettings(next);
+      setSettings(next);
+    },
+    [setSettings],
+  );
+
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
   if (!booted || !tree) {
     return (
-      <div className="modang-app">
-        <div className="modang-toolbar">
-          <div className="group">
-            <strong>墨档</strong>
-            <span className="modang-muted" style={{ fontSize: 12 }}>
-              正在初始化…
-            </span>
+      <div className="appRoot">
+        <div className="topbar">
+          <div className="brand">
+            <div className="brandMark" />
+            <div>{t('app.name')}</div>
+            <div className="subtle">{t('status.init')}</div>
           </div>
         </div>
       </div>
@@ -294,61 +315,97 @@ export function AppShell() {
   }
 
   return (
-    <div className="modang-app">
-      <Toolbar
-        onNewFile={doNewFile}
-        onNewFolder={doNewFolder}
-        onRename={doRename}
-        onDelete={doDelete}
-        onMove={() => setShowMove(true)}
-        onOpenSettings={() => setShowSettings(true)}
-        onExportMarkdown={doExportMarkdown}
-        themeMode={themeMode}
-      />
-
-      <div className="modang-layout">
-        <div className="modang-pane" style={{ width: leftWidth }}>
-          <div className="pane-title">文件</div>
-          <div className="pane-body">
-            <FileTree
-              tree={tree}
-              selectedId={selectedId}
-              expanded={expanded}
-              onToggleFolder={onToggleFolder}
-              onSelect={onSelect}
-            />
-          </div>
+    <div className="appRoot">
+      <div className="topbar">
+        <div className="brand">
+          <div className="brandMark" />
+          <div>{t('app.name')}</div>
+          <div className="subtle">{t('status.localOnly')}</div>
         </div>
 
-        <Splitter
-          onDelta={(dx) => {
-            const next = clamp(leftWidth + dx, 180, 520);
-            setLeftWidth(next);
-          }}
-        />
-
-        <div className="modang-pane" style={{ width: centerWidth, flex: 1 }}>
-          <div className="pane-title">编辑</div>
-          <div className="pane-body">
-            <EditorPane
-              value={content}
-              onChange={onChangeContent}
-              theme={resolvedTheme === 'dark' ? 'vs-dark' : 'vs'}
-            />
-          </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Button size="sm" variant="secondary" onClick={doNewFile} leftIcon={<FilePlus2 size={16} />}>
+            {t('toolbar.newFile')}
+          </Button>
+          <Button size="sm" variant="secondary" onClick={doNewFolder} leftIcon={<FolderPlus size={16} />}>
+            {t('toolbar.newFolder')}
+          </Button>
+          <IconButton icon={<Pencil size={18} />} label={t('toolbar.rename')} onClick={doRename} />
+          <IconButton
+            icon={<Trash2 size={18} />}
+            label={t('toolbar.delete')}
+            onClick={doDelete}
+            className="ui-iconBtn--danger"
+          />
+          <IconButton icon={<MoveRight size={18} />} label={t('toolbar.move')} onClick={() => setShowMove(true)} />
+          <IconButton icon={<Download size={18} />} label={t('export.md')} onClick={doExportMarkdown} />
+          <IconButton
+            icon={<SettingsIcon size={18} />}
+            label={t('toolbar.settings')}
+            onClick={() => setShowSettings(true)}
+          />
         </div>
+      </div>
 
-        <Splitter
-          onDelta={(dx) => {
-            const next = clamp(rightWidth - dx, 240, 900);
-            setRightWidth(next);
-          }}
-        />
+      <div className="workspace">
+        <div className="shell">
+          <div className="paneCard" style={{ width: leftWidth }}>
+            <div className="paneHeader">
+              <div className="paneTitle">{t('pane.files')}</div>
+              <div className="subtle" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {currentFileId && tree.nodes[currentFileId]?.name ? tree.nodes[currentFileId]!.name : ''}
+              </div>
+            </div>
+            <div className="paneBody">
+              <FileTree
+                tree={tree}
+                selectedId={selectedId}
+                expanded={expanded}
+                language={language}
+                onToggleFolder={onToggleFolder}
+                onSelect={onSelect}
+              />
+            </div>
+          </div>
 
-        <div className="modang-pane" style={{ width: rightWidth }}>
-          <div className="pane-title">预览</div>
-          <div className="pane-body">
-            <PreviewPane markdown={content} />
+          <Splitter
+            onDelta={(dx) => {
+              const next = clamp(leftWidth + dx, 200, 560);
+              setLeftWidth(next);
+            }}
+          />
+
+          <div className="paneCard" style={{ width: centerWidth, flex: 1 }}>
+            <div className="paneHeader">
+              <div className="paneTitle">{t('pane.editor')}</div>
+              <div className="subtle">{t('export.todo')}</div>
+            </div>
+            <div className="paneBody">
+              <EditorPane
+                value={content}
+                onChange={onChangeContent}
+                theme={resolvedTheme === 'dark' ? 'vs-dark' : 'vs'}
+              />
+            </div>
+          </div>
+
+          <Splitter
+            onDelta={(dx) => {
+              const next = clamp(rightWidth - dx, 280, 980);
+              setRightWidth(next);
+            }}
+          />
+
+          <div className="paneCard" style={{ width: rightWidth }}>
+            <div className="paneHeader">
+              <div className="paneTitle">{t('pane.preview')}</div>
+              <div className="subtle">{resolvedTheme === 'dark' ? t('theme.dark') : t('theme.light')}</div>
+            </div>
+            <div className="paneBody">
+              <div className="preview">
+                <PreviewPane markdown={content} />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -356,7 +413,9 @@ export function AppShell() {
       {showSettings && (
         <SettingsModal
           themeMode={themeMode}
+          language={language}
           onChangeTheme={onChangeTheme}
+          onChangeLanguage={onChangeLanguage}
           onClose={() => setShowSettings(false)}
         />
       )}
@@ -365,6 +424,7 @@ export function AppShell() {
         <MoveDialog
           tree={tree}
           currentId={selectedId}
+          language={language}
           onMoveTo={doMoveTo}
           onClose={() => setShowMove(false)}
         />

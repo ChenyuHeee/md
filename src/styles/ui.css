@@ -1,0 +1,87 @@
+.ui-btn {
+  height: 32px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+}
+
+.ui-btn--sm {
+  height: 30px;
+  padding: 0 9px;
+  border-radius: 9px;
+}
+
+.ui-btn--default:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+.ui-btn--secondary {
+  background: var(--surface-1);
+}
+
+.ui-btn--danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 30%, var(--border));
+}
+
+.ui-btn--ghost {
+  background: transparent;
+  border-color: transparent;
+}
+
+.ui-btn:active {
+  transform: translateY(1px);
+}
+
+.ui-btn__icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+}
+
+.ui-iconBtn {
+  width: 34px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-1);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.ui-iconBtn:hover {
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  border-color: color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.ui-iconBtn--danger {
+  color: var(--danger);
+}
+
+.ui-input,
+.ui-select {
+  height: 34px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 0 10px;
+  background: var(--surface-1);
+  color: var(--text-1);
+  outline: none;
+}
+
+.ui-input:focus,
+.ui-select:focus {
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 18%, transparent);
+}

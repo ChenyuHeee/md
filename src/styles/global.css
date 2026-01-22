@@ -1,229 +1,26 @@
-:root {
-  --bg: #ffffff;
-  --panel: #f7f7f8;
-  --border: #e6e6ea;
-  --text: #16181d;
-  --muted: #5b616e;
-  --accent: #2563eb;
-  --danger: #dc2626;
-  --shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
-  --font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji';
+@import './theme.css';
+@import './ui.css';
+@import './app.css';
+
+* {
+  box-sizing: border-box;
 }
 
-html[data-theme='dark'] {
-  --bg: #0b0f14;
-  --panel: #0f1620;
-  --border: #1f2a37;
-  --text: #e5e7eb;
-  --muted: #9aa4b2;
-  --accent: #60a5fa;
-  --danger: #f87171;
-  --shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
-}
-
-* { box-sizing: border-box; }
-
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
   font-family: var(--font);
+  color: var(--text-1);
+  background: var(--bg);
 }
 
-button, input, select {
+button,
+input,
+select {
   font: inherit;
 }
 
-a { color: var(--accent); }
-
-.modang-app {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
+a {
+  color: var(--accent);
 }
-
-.modang-toolbar {
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 10px;
-  border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--panel) 80%, var(--bg));
-}
-
-.modang-toolbar .group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.modang-btn {
-  height: 30px;
-  padding: 0 10px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  color: var(--text);
-  cursor: pointer;
-}
-
-.modang-btn:hover {
-  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
-}
-
-.modang-btn.danger {
-  color: var(--danger);
-}
-
-.modang-layout {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-}
-
-.modang-pane {
-  min-width: 140px;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.modang-pane .pane-title {
-  height: 36px;
-  display: flex;
-  align-items: center;
-  padding: 0 10px;
-  border-bottom: 1px solid var(--border);
-  background: var(--panel);
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.modang-pane .pane-body {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-}
-
-.modang-splitter {
-  width: 8px;
-  cursor: col-resize;
-  background: transparent;
-  position: relative;
-}
-
-.modang-splitter::after {
-  content: '';
-  position: absolute;
-  left: 3px;
-  top: 0;
-  width: 2px;
-  height: 100%;
-  background: color-mix(in srgb, var(--border) 75%, transparent);
-}
-
-.modang-filetree {
-  padding: 8px;
-}
-
-.modang-node {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 6px;
-  border-radius: 8px;
-  cursor: pointer;
-  user-select: none;
-}
-
-.modang-node:hover {
-  background: color-mix(in srgb, var(--panel) 70%, transparent);
-}
-
-.modang-node.selected {
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
-  outline: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-}
-
-.modang-node .icon {
-  width: 16px;
-  text-align: center;
-  opacity: 0.9;
-}
-
-.modang-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.35);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 18px;
-}
-
-.modang-modal {
-  width: min(560px, 96vw);
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  box-shadow: var(--shadow);
-}
-
-.modang-modal header {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--border);
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.modang-modal .content {
-  padding: 12px;
-  display: grid;
-  gap: 10px;
-}
-
-.modang-modal .row {
-  display: grid;
-  gap: 6px;
-}
-
-.modang-modal footer {
-  padding: 10px 12px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.modang-input {
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  padding: 0 10px;
-  background: var(--bg);
-  color: var(--text);
-}
-
-.modang-preview {
-  padding: 12px;
-  line-height: 1.6;
-}
-
-.modang-preview pre {
-  padding: 10px;
-  overflow: auto;
-  background: color-mix(in srgb, var(--panel) 80%, var(--bg));
-  border: 1px solid var(--border);
-  border-radius: 10px;
-}
-
-.modang-preview code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
-    'Courier New', monospace;
-}
-
-.modang-muted { color: var(--muted); }

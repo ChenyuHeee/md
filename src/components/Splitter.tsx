@@ -29,7 +29,7 @@ export function Splitter(props: {
 
   return (
     <div
-      className="modang-splitter"
+      className="splitter"
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}

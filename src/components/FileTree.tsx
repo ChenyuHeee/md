@@ -1,4 +1,7 @@
 import React, { useMemo } from 'react';
+import { FileText, Folder, FolderOpen } from 'lucide-react';
+import type { Language } from '../i18n/translations';
+import { useI18n } from '../i18n/useI18n';
 import type { FileNode } from '../types/models';
 import type { TreeState } from '../storage/tree';
 import { listChildren } from '../storage/tree';
@@ -7,9 +10,11 @@ export function FileTree(props: {
   tree: TreeState;
   selectedId: string | null;
   expanded: Set<string>;
+  language: Language;
   onToggleFolder: (id: string) => void;
   onSelect: (id: string) => void;
 }) {
+  const { t } = useI18n(props.language);
   const root = props.tree.nodes[props.tree.rootId];
 
   const rows = useMemo<Array<{ node: FileNode; depth: number }>>(() => {
@@ -31,14 +36,10 @@ export function FileTree(props: {
     return result;
   }, [props.expanded, props.tree, root]);
 
-  if (!root) return <div className="modang-filetree modang-muted">工作区损坏</div>;
+  if (!root) return <div className="fileTree" style={{ color: 'var(--text-2)' }}>{t('fileTree.error')}</div>;
 
   return (
-    <div className="modang-filetree">
-      <div className="modang-node selected" style={{ marginBottom: 6 }}>
-        <span className="icon">📁</span>
-        <span>{root.name}</span>
-      </div>
+    <div className="fileTree">
 
       {rows.map((row) => {
         const { node, depth } = row;
@@ -48,7 +49,7 @@ export function FileTree(props: {
         return (
           <div
             key={node.id}
-            className={`modang-node ${selected ? 'selected' : ''}`}
+            className={`treeRow ${selected ? 'isSelected' : ''}`}
             style={{ paddingLeft: 8 + depth * 14 }}
             onClick={() => props.onSelect(node.id)}
             onDoubleClick={() => {
@@ -56,7 +57,17 @@ export function FileTree(props: {
             }}
             title={node.name}
           >
-            <span className="icon">{isFolder ? (expanded ? '📂' : '📁') : '📄'}</span>
+            <span className="treeIcon">
+              {isFolder ? (
+                expanded ? (
+                  <FolderOpen size={16} />
+                ) : (
+                  <Folder size={16} />
+                )
+              ) : (
+                <FileText size={16} />
+              )}
+            </span>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {node.name}
             </span>

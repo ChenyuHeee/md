@@ -3,6 +3,7 @@ import type { Settings, ThemeMode } from '../types/models';
 
 const DEFAULT_SETTINGS: Settings = {
   themeMode: 'system',
+  language: 'zh-CN',
   ui: {
     leftWidth: 260,
     centerWidth: 520,

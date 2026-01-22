@@ -2,6 +2,8 @@ export type NodeType = 'file' | 'folder';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
+export type Language = 'zh-CN' | 'en';
+
 export interface FileNode {
   id: string;
   name: string;
@@ -27,6 +29,7 @@ export interface Asset {
 
 export interface Settings {
   themeMode: ThemeMode;
+  language?: Language;
   lastOpenFileId?: string;
   ui?: {
     leftWidth?: number;
