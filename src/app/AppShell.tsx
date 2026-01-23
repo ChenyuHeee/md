@@ -78,6 +78,13 @@ function pickDocTitle(markdown: string, fallback: string) {
   return (m?.[1]?.trim() || fallback).slice(0, 160);
 }
 
+function ensureExtension(name: string, ext: string) {
+  if (name.toLowerCase().endsWith(ext.toLowerCase())) return name;
+  // Only append when there is no extension at all.
+  if (/\.[a-z0-9]+$/i.test(name)) return name;
+  return `${name}${ext}`;
+}
+
 export function AppShell() {
   const [booted, setBooted] = useState(false);
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
@@ -307,7 +314,8 @@ export function AppShell() {
   const doExportMarkdown = useCallback(() => {
     if (!tree || !currentFileId) return;
     const node = tree.nodes[currentFileId];
-    const name = node?.name || 'export.md';
+    const rawName = node?.name || 'export';
+    const name = ensureExtension(rawName, '.md');
     downloadText(name, content, 'text/markdown;charset=utf-8');
   }, [content, currentFileId, tree]);
 
