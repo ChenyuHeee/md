@@ -38,6 +38,11 @@ import { useTheme } from './useTheme';
 import { deleteFileContent } from '../storage/db';
 import { useI18n } from '../i18n/useI18n';
 import type { Language } from '../i18n/translations';
+import {
+  buildExportHtmlDocument,
+  openPrintWindow,
+  renderMarkdownHtmlWithInlinedAssets,
+} from '../export/export';
 
 function debounce<T extends (...args: any[]) => void>(fn: T, waitMs: number) {
   let t: number | null = null;
@@ -75,6 +80,7 @@ export function AppShell() {
 
   const [showSettings, setShowSettings] = useState(false);
   const [showMove, setShowMove] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   const widths = settings.ui ?? {};
   const [leftWidth, setLeftWidth] = useState(widths.leftWidth ?? 260);
@@ -103,6 +109,19 @@ export function AppShell() {
       cancelled = true;
     };
   }, []);
+
+  // close export menu on outside click
+  useEffect(() => {
+    if (!showExportMenu) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node | null;
+      const el = document.getElementById('exportMenuWrap');
+      if (!el || !target) return;
+      if (!el.contains(target)) setShowExportMenu(false);
+    };
+    window.addEventListener('pointerdown', onPointerDown);
+    return () => window.removeEventListener('pointerdown', onPointerDown);
+  }, [showExportMenu]);
 
   const persistUiWidths = useMemo(
     () =>
@@ -275,10 +294,36 @@ export function AppShell() {
     const node = tree.nodes[currentFileId];
     const name = node?.name || 'export.md';
     downloadText(name, content, 'text/markdown;charset=utf-8');
-
-    // TODO: 导出 HTML
-    // TODO: 导出 PDF
   }, [content, currentFileId, tree]);
+
+  const doExportHtml = useCallback(async () => {
+    if (!tree || !currentFileId) return;
+    const node = tree.nodes[currentFileId];
+    const baseName = node?.name || 'export.md';
+
+    const htmlName = baseName.toLowerCase().endsWith('.md')
+      ? baseName.replace(/\.md$/i, '.html')
+      : baseName.endsWith('.html')
+        ? baseName
+        : `${baseName}.html`;
+
+    const bodyHtml = await renderMarkdownHtmlWithInlinedAssets(content);
+    const doc = buildExportHtmlDocument({ title: htmlName, bodyHtml });
+    downloadText(htmlName, doc, 'text/html;charset=utf-8');
+  }, [content, currentFileId, tree]);
+
+  const doExportPdf = useCallback(async () => {
+    if (!tree || !currentFileId) return;
+    const node = tree.nodes[currentFileId];
+    const baseName = node?.name || 'export.md';
+
+    const title = baseName.toLowerCase().endsWith('.md') ? baseName.replace(/\.md$/i, '') : baseName;
+
+    const bodyHtml = await renderMarkdownHtmlWithInlinedAssets(content);
+    const doc = buildExportHtmlDocument({ title, bodyHtml });
+    const ok = openPrintWindow(doc);
+    if (!ok) alert(t('export.popupBlocked'));
+  }, [content, currentFileId, t, tree]);
 
   const onChangeTheme = useCallback(
     (mode: ThemeMode) => {
@@ -338,7 +383,47 @@ export function AppShell() {
             className="ui-iconBtn--danger"
           />
           <IconButton icon={<MoveRight size={18} />} label={t('toolbar.move')} onClick={() => setShowMove(true)} />
-          <IconButton icon={<Download size={18} />} label={t('export.md')} onClick={doExportMarkdown} />
+          <div id="exportMenuWrap" style={{ position: 'relative' }}>
+            <IconButton
+              icon={<Download size={18} />}
+              label={t('export.menu')}
+              onClick={() => setShowExportMenu((v) => !v)}
+            />
+            {showExportMenu ? (
+              <div className="menu" role="menu" aria-label={t('export.menu')}>
+                <button
+                  type="button"
+                  className="menuItem"
+                  onClick={() => {
+                    doExportMarkdown();
+                    setShowExportMenu(false);
+                  }}
+                >
+                  {t('export.md')}
+                </button>
+                <button
+                  type="button"
+                  className="menuItem"
+                  onClick={() => {
+                    void doExportHtml();
+                    setShowExportMenu(false);
+                  }}
+                >
+                  {t('export.html')}
+                </button>
+                <button
+                  type="button"
+                  className="menuItem"
+                  onClick={() => {
+                    void doExportPdf();
+                    setShowExportMenu(false);
+                  }}
+                >
+                  {t('export.pdf')}
+                </button>
+              </div>
+            ) : null}
+          </div>
           <IconButton
             icon={<SettingsIcon size={18} />}
             label={t('toolbar.settings')}

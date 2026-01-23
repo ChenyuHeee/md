@@ -33,13 +33,17 @@ export type I18nKey =
   | 'prompt.rename'
   | 'confirm.delete'
   | 'toast.todo'
+  | 'export.menu'
+  | 'export.md'
+  | 'export.html'
+  | 'export.pdf'
+  | 'export.popupBlocked'
   | 'theme.system'
   | 'theme.light'
   | 'theme.dark'
   | 'lang.zh'
   | 'lang.en'
-  | 'export.todo'
-  | 'export.md';
+  | 'export.todo';
 
 export const translations: Record<Language, Record<I18nKey, string>> = {
   'zh-CN': {
@@ -76,13 +80,17 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'prompt.rename': '重命名',
     'confirm.delete': '确定删除：{name}？（文件夹将递归删除）',
     'toast.todo': 'TODO：功能待实现',
+    'export.menu': '导出…',
+    'export.md': '导出 Markdown',
+    'export.html': '导出 HTML（含图片）',
+    'export.pdf': '导出 PDF（打印）',
+    'export.popupBlocked': '导出 PDF 需要打开新窗口。请允许弹窗后重试。',
     'theme.system': '跟随系统',
     'theme.light': '浅色',
     'theme.dark': '深色',
     'lang.zh': '中文',
     'lang.en': 'English',
     'export.todo': 'TODO：导出 HTML / PDF（待实现）',
-    'export.md': '导出 Markdown',
   },
   en: {
     'app.name': 'Modang',
@@ -118,13 +126,17 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'prompt.rename': 'Rename',
     'confirm.delete': 'Delete: {name}? (Folders will be deleted recursively)',
     'toast.todo': 'TODO: Not implemented yet',
+    'export.menu': 'Export…',
+    'export.md': 'Export Markdown',
+    'export.html': 'Export HTML (with images)',
+    'export.pdf': 'Export PDF (Print)',
+    'export.popupBlocked': 'PDF export needs a new window. Please allow pop-ups and retry.',
     'theme.system': 'System',
     'theme.light': 'Light',
     'theme.dark': 'Dark',
     'lang.zh': '中文',
     'lang.en': 'English',
     'export.todo': 'TODO: Export HTML / PDF',
-    'export.md': 'Export Markdown',
   },
 };
 
