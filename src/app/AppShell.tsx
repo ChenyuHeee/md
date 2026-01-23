@@ -64,6 +64,20 @@ function downloadText(filename: string, text: string, mime = 'text/plain;charset
   URL.revokeObjectURL(url);
 }
 
+function escapeHtml(s: string) {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function pickDocTitle(markdown: string, fallback: string) {
+  const m = (markdown || '').match(/^\s*#\s+(.+)\s*$/m);
+  return (m?.[1]?.trim() || fallback).slice(0, 160);
+}
+
 export function AppShell() {
   const [booted, setBooted] = useState(false);
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
@@ -71,6 +85,7 @@ export function AppShell() {
   const { resolvedTheme } = useTheme(themeMode);
   const language = (settings.language ?? 'zh-CN') as Language;
   const { t } = useI18n(language);
+  const exportIncludeHeader = settings.export?.includeHeader ?? true;
 
   const [tree, setTree] = useState<TreeState | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -307,23 +322,75 @@ export function AppShell() {
         ? baseName
         : `${baseName}.html`;
 
+    const now = new Date();
+    const locale = language === 'en' ? 'en-US' : 'zh-CN';
+    const exportedAt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(now);
+
+    const fallbackTitle = baseName.toLowerCase().endsWith('.md') ? baseName.replace(/\.md$/i, '') : baseName;
+    const docTitle = pickDocTitle(content, fallbackTitle);
+
+    const headerHtml = exportIncludeHeader
+      ? `<header class="exportHeader">
+          <div class="exportHeaderTitle">${escapeHtml(docTitle)}</div>
+          <div class="exportHeaderMeta">
+            <div class="exportHeaderMetaRow"><span class="exportHeaderKey">${escapeHtml(t('export.header.file'))}</span><span class="exportHeaderVal">${escapeHtml(baseName)}</span></div>
+            <div class="exportHeaderMetaRow"><span class="exportHeaderKey">${escapeHtml(t('export.header.exportedAt'))}</span><span class="exportHeaderVal">${escapeHtml(exportedAt)}</span></div>
+          </div>
+        </header>`
+      : undefined;
+
     const bodyHtml = await renderMarkdownHtmlWithInlinedAssets(content);
-    const doc = buildExportHtmlDocument({ title: htmlName, bodyHtml });
+    const doc = buildExportHtmlDocument({
+      title: docTitle,
+      bodyHtml,
+      headerHtml,
+      lang: language === 'en' ? 'en' : 'zh-CN',
+    });
     downloadText(htmlName, doc, 'text/html;charset=utf-8');
-  }, [content, currentFileId, tree]);
+  }, [content, currentFileId, exportIncludeHeader, language, t, tree]);
 
   const doExportPdf = useCallback(async () => {
     if (!tree || !currentFileId) return;
     const node = tree.nodes[currentFileId];
     const baseName = node?.name || 'export.md';
 
-    const title = baseName.toLowerCase().endsWith('.md') ? baseName.replace(/\.md$/i, '') : baseName;
+    const now = new Date();
+    const locale = language === 'en' ? 'en-US' : 'zh-CN';
+    const exportedAt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(now);
+
+    const fallbackTitle = baseName.toLowerCase().endsWith('.md') ? baseName.replace(/\.md$/i, '') : baseName;
+    const docTitle = pickDocTitle(content, fallbackTitle);
+
+    const headerHtml = exportIncludeHeader
+      ? `<header class="exportHeader">
+          <div class="exportHeaderTitle">${escapeHtml(docTitle)}</div>
+          <div class="exportHeaderMeta">
+            <div class="exportHeaderMetaRow"><span class="exportHeaderKey">${escapeHtml(t('export.header.file'))}</span><span class="exportHeaderVal">${escapeHtml(baseName)}</span></div>
+            <div class="exportHeaderMetaRow"><span class="exportHeaderKey">${escapeHtml(t('export.header.exportedAt'))}</span><span class="exportHeaderVal">${escapeHtml(exportedAt)}</span></div>
+          </div>
+        </header>`
+      : undefined;
 
     const bodyHtml = await renderMarkdownHtmlWithInlinedAssets(content);
-    const doc = buildExportHtmlDocument({ title, bodyHtml });
+    const doc = buildExportHtmlDocument({
+      title: docTitle,
+      bodyHtml,
+      headerHtml,
+      lang: language === 'en' ? 'en' : 'zh-CN',
+    });
     const ok = openPrintWindow(doc);
     if (!ok) alert(t('export.popupBlocked'));
-  }, [content, currentFileId, t, tree]);
+  }, [content, currentFileId, exportIncludeHeader, language, t, tree]);
+
+  const onToggleExportHeader = useCallback(
+    (nextValue: boolean) => {
+      const next = loadSettings();
+      next.export = { ...(next.export ?? {}), includeHeader: nextValue };
+      saveSettings(next);
+      setSettings(next);
+    },
+    [setSettings],
+  );
 
   const onChangeTheme = useCallback(
     (mode: ThemeMode) => {
@@ -391,6 +458,16 @@ export function AppShell() {
             />
             {showExportMenu ? (
               <div className="menu" role="menu" aria-label={t('export.menu')}>
+                <label className="menuItem menuItemToggle">
+                  <input
+                    className="menuCheck"
+                    type="checkbox"
+                    checked={exportIncludeHeader}
+                    onChange={(e) => onToggleExportHeader(e.target.checked)}
+                  />
+                  <span>{t('export.includeHeader')}</span>
+                </label>
+                <div className="menuSep" />
                 <button
                   type="button"
                   className="menuItem"

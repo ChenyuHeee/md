@@ -223,6 +223,25 @@
   cursor: pointer;
 }
 
+.menuItemToggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.menuCheck {
+  width: 14px;
+  height: 14px;
+}
+
+.menuSep {
+  height: 1px;
+  margin: 4px 6px;
+  background: color-mix(in srgb, var(--border) 70%, transparent);
+}
+
 .menuItem:hover {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }

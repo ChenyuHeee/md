@@ -4,6 +4,9 @@ import type { Settings, ThemeMode } from '../types/models';
 const DEFAULT_SETTINGS: Settings = {
   themeMode: 'system',
   language: 'zh-CN',
+  export: {
+    includeHeader: true,
+  },
   ui: {
     leftWidth: 260,
     centerWidth: 520,
@@ -19,6 +22,7 @@ export function loadSettings(): Settings {
     return {
       ...DEFAULT_SETTINGS,
       ...parsed,
+      export: { ...DEFAULT_SETTINGS.export, ...(parsed.export ?? {}) },
       ui: { ...DEFAULT_SETTINGS.ui, ...(parsed.ui ?? {}) },
     };
   } catch {

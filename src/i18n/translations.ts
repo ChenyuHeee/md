@@ -34,6 +34,9 @@ export type I18nKey =
   | 'confirm.delete'
   | 'toast.todo'
   | 'export.menu'
+  | 'export.includeHeader'
+  | 'export.header.file'
+  | 'export.header.exportedAt'
   | 'export.md'
   | 'export.html'
   | 'export.pdf'
@@ -81,6 +84,9 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'confirm.delete': '确定删除：{name}？（文件夹将递归删除）',
     'toast.todo': 'TODO：功能待实现',
     'export.menu': '导出…',
+    'export.includeHeader': '包含页眉（标题 / 文件名 / 时间）',
+    'export.header.file': '文件：',
+    'export.header.exportedAt': '导出时间：',
     'export.md': '导出 Markdown',
     'export.html': '导出 HTML（含图片）',
     'export.pdf': '导出 PDF（打印）',
@@ -127,6 +133,9 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'confirm.delete': 'Delete: {name}? (Folders will be deleted recursively)',
     'toast.todo': 'TODO: Not implemented yet',
     'export.menu': 'Export…',
+    'export.includeHeader': 'Include header (title / file / time)',
+    'export.header.file': 'File: ',
+    'export.header.exportedAt': 'Exported: ',
     'export.md': 'Export Markdown',
     'export.html': 'Export HTML (with images)',
     'export.pdf': 'Export PDF (Print)',

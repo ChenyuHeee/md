@@ -31,6 +31,9 @@ export interface Settings {
   themeMode: ThemeMode;
   language?: Language;
   lastOpenFileId?: string;
+  export?: {
+    includeHeader?: boolean;
+  };
   ui?: {
     leftWidth?: number;
     centerWidth?: number;

@@ -49,11 +49,16 @@ export async function renderMarkdownHtmlWithInlinedAssets(markdown: string): Pro
   return wrapper.innerHTML;
 }
 
-export function buildExportHtmlDocument(params: { title: string; bodyHtml: string }) {
+export function buildExportHtmlDocument(params: {
+  title: string;
+  bodyHtml: string;
+  headerHtml?: string;
+  lang?: string;
+}) {
   // Minimal, self-contained Markdown-ish styles.
   const baseCss = `
 :root{color-scheme:light dark}
-body{margin:0;padding:32px;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans";line-height:1.7;background:#ffffff;color:#0f172a}
+body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans";line-height:1.7;background:#ffffff;color:#0f172a}
 @media (prefers-color-scheme: dark){body{background:#0b0f14;color:#e5e7eb}}
 a{color:#2563eb}
 @media (prefers-color-scheme: dark){a{color:#60a5fa}}
@@ -69,6 +74,25 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation M
 table{border-collapse:collapse;width:100%}
 th,td{border:1px solid rgba(148,163,184,.35);padding:6px 10px;vertical-align:top}
 @media (prefers-color-scheme: dark){th,td{border-color:rgba(51,65,85,.8)}}
+
+.exportDoc{max-width:980px;margin:0 auto;padding:32px}
+.exportHeader{margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid rgba(148,163,184,.35)}
+@media (prefers-color-scheme: dark){.exportHeader{border-bottom-color:rgba(51,65,85,.8)}}
+.exportHeaderTitle{font-weight:700;font-size:20px;letter-spacing:.01em;margin:0 0 6px 0}
+.exportHeaderMeta{display:grid;gap:4px;font-size:12px;color:rgba(71,85,105,.95)}
+@media (prefers-color-scheme: dark){.exportHeaderMeta{color:rgba(226,232,240,.78)}}
+.exportHeaderMetaRow{display:flex;gap:6px;flex-wrap:wrap}
+.exportHeaderKey{color:rgba(71,85,105,.95)}
+@media (prefers-color-scheme: dark){.exportHeaderKey{color:rgba(226,232,240,.78)}}
+.exportHeaderVal{color:inherit}
+
+@media print{
+  @page{margin:16mm}
+  body{background:#ffffff !important;color:#000000 !important}
+  .exportDoc{max-width:none;padding:0}
+  a{color:#000000;text-decoration:underline}
+  pre{break-inside:avoid-page}
+}
 `;
 
   const safeTitle = escapeHtml(params.title);
@@ -77,7 +101,7 @@ th,td{border:1px solid rgba(148,163,184,.35);padding:6px 10px;vertical-align:top
   const hljsCss = `${hljsGithubLight}\n\n@media (prefers-color-scheme: dark){\n${hljsGithubDark}\n}`;
 
   return `<!doctype html>
-<html lang="zh-CN">
+<html lang="${escapeHtml(params.lang ?? 'zh-CN')}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -86,7 +110,10 @@ th,td{border:1px solid rgba(148,163,184,.35);padding:6px 10px;vertical-align:top
     <style>${hljsCss}</style>
   </head>
   <body>
-    ${params.bodyHtml}
+    <div class="exportDoc">
+      ${params.headerHtml ?? ''}
+      <main class="exportMain">${params.bodyHtml}</main>
+    </div>
   </body>
 </html>`;
 }
