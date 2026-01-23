@@ -61,5 +61,5 @@ export function PreviewPane(props: { markdown: string }) {
     };
   }, []);
 
-  return <div className="modang-preview" dangerouslySetInnerHTML={{ __html: html }} />;
+  return <div dangerouslySetInnerHTML={{ __html: html }} />;
 }
