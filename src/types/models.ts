@@ -38,5 +38,6 @@ export interface Settings {
     leftWidth?: number;
     centerWidth?: number;
     rightWidth?: number;
+    expandedFolderIds?: string[];
   };
 }

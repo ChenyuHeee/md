@@ -28,6 +28,7 @@ import {
   createFolder,
   collectSubtreeFileIds,
   deleteNode,
+  getAncestorFolderIds,
   moveNode,
   renameNode,
   resolveParentFolderId,
@@ -132,7 +133,11 @@ export function AppShell() {
       setTree(boot.tree);
       setSelectedId(boot.currentFileId);
       setCurrentFileId(boot.currentFileId);
-      setExpanded(new Set([boot.tree.rootId]));
+
+      const persistedExpanded = boot.settings.ui?.expandedFolderIds ?? [boot.tree.rootId];
+      const autoExpand = getAncestorFolderIds(boot.tree, boot.currentFileId);
+      setExpanded(new Set([boot.tree.rootId, ...persistedExpanded, ...autoExpand]));
+
       setBooted(true);
 
       const text = await loadFileText(boot.currentFileId);
@@ -161,12 +166,26 @@ export function AppShell() {
   const persistUiWidths = useMemo(
     () =>
       debounce((l: number, c: number, r: number) => {
+        const cur = loadSettings();
         const next: Settings = {
-          ...loadSettings(),
-          ui: { leftWidth: l, centerWidth: c, rightWidth: r },
+          ...cur,
+          ui: { ...(cur.ui ?? {}), leftWidth: l, centerWidth: c, rightWidth: r },
         };
         saveSettings(next);
       }, 200),
+    [],
+  );
+
+  const persistExpandedFolders = useMemo(
+    () =>
+      debounce((expandedIds: string[]) => {
+        const cur = loadSettings();
+        const next: Settings = {
+          ...cur,
+          ui: { ...(cur.ui ?? {}), expandedFolderIds: expandedIds },
+        };
+        saveSettings(next);
+      }, 120),
     [],
   );
 
@@ -198,13 +217,23 @@ export function AppShell() {
       const node = tree.nodes[fileId];
       if (!node || node.type !== 'file') return;
 
+      // Ensure folder path is expanded so the file remains visible after reload.
+      const ancestors = getAncestorFolderIds(tree, fileId);
+      setExpanded((prev) => {
+        const next = new Set(prev);
+        next.add(tree.rootId);
+        for (const fid of ancestors) next.add(fid);
+        persistExpandedFolders([...next]);
+        return next;
+      });
+
       setSelectedId(fileId);
       setCurrentFileId(fileId);
       updateLastOpenFileId(fileId);
       const text = await loadFileText(fileId);
       setContent(text);
     },
-    [tree],
+    [persistExpandedFolders, tree],
   );
 
   const onSelect = useCallback(
@@ -223,9 +252,13 @@ export function AppShell() {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+
+      // Always keep root expanded; and persist.
+      if (tree) next.add(tree.rootId);
+      persistExpandedFolders([...next]);
       return next;
     });
-  }, []);
+  }, [persistExpandedFolders, tree]);
 
   const requireTree = (): TreeState => {
     if (!tree) throw new Error('Tree not ready');

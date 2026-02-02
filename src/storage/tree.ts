@@ -240,3 +240,27 @@ export function resolveParentFolderId(tree: TreeState, selectedId: string | null
   if (selected.type === 'folder') return selected.id;
   return selected.parentId ?? tree.rootId;
 }
+
+export function getAncestorFolderIds(tree: TreeState, nodeId: string): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+
+  let cur: FileNode | null = tree.nodes[nodeId] ?? null;
+  if (!cur) return result;
+
+  // For files, start from its parent folder. For folders, include itself.
+  if (cur.type === 'file') {
+    cur = cur.parentId ? tree.nodes[cur.parentId] ?? null : null;
+  }
+
+  while (cur && cur.type === 'folder') {
+    if (seen.has(cur.id)) break;
+    seen.add(cur.id);
+    result.push(cur.id);
+    if (!cur.parentId) break;
+    cur = tree.nodes[cur.parentId] ?? null;
+  }
+
+  // root -> leaf order
+  return result.reverse();
+}

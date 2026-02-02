@@ -11,6 +11,7 @@ const DEFAULT_SETTINGS: Settings = {
     leftWidth: 260,
     centerWidth: 520,
     rightWidth: 420,
+    expandedFolderIds: ['root'],
   },
 };
 
