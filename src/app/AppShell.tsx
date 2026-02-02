@@ -177,6 +177,20 @@ export function AppShell() {
   const [showMove, setShowMove] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
 
+  const [treeMenu, setTreeMenu] = useState<null | { id: string; x: number; y: number }>(null);
+
+  useEffect(() => {
+    if (!treeMenu) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node | null;
+      const el = document.getElementById('treeContextMenu');
+      if (!el || !target) return;
+      if (!el.contains(target)) setTreeMenu(null);
+    };
+    window.addEventListener('pointerdown', onPointerDown);
+    return () => window.removeEventListener('pointerdown', onPointerDown);
+  }, [treeMenu]);
+
   const widths = settings.ui ?? {};
   const [leftWidth, setLeftWidth] = useState(widths.leftWidth ?? 260);
   const [centerWidth, setCenterWidth] = useState(widths.centerWidth ?? 520);
@@ -388,6 +402,27 @@ export function AppShell() {
     },
     [isCompact, isPortrait, openFile, tree],
   );
+
+  const onTreeContextMenu = useCallback(
+    (id: string, clientX: number, clientY: number) => {
+      if (!tree) return;
+      setSelectedId(id);
+
+      const margin = 8;
+      const approxW = 240;
+      const approxH = 240;
+      const x = Math.max(margin, Math.min(clientX, window.innerWidth - approxW - margin));
+      const y = Math.max(margin, Math.min(clientY, window.innerHeight - approxH - margin));
+      setTreeMenu({ id, x, y });
+    },
+    [tree],
+  );
+
+  const runWithSelected = useCallback((id: string, fn: () => void) => {
+    setSelectedId(id);
+    setTreeMenu(null);
+    fn();
+  }, []);
 
   const onToggleFolder = useCallback((id: string) => {
     setExpanded((prev) => {
@@ -805,6 +840,7 @@ export function AppShell() {
                     language={language}
                     onToggleFolder={onToggleFolder}
                     onSelect={onSelect}
+                    onContextMenu={onTreeContextMenu}
                   />
                 </div>
               </div>
@@ -909,11 +945,49 @@ export function AppShell() {
                   language={language}
                   onToggleFolder={onToggleFolder}
                   onSelect={onSelect}
+                  onContextMenu={onTreeContextMenu}
                 />
               </div>
             </div>
           </div>
         </>
+      ) : null}
+
+      {treeMenu && tree ? (
+        <div
+          id="treeContextMenu"
+          className="menu treeContextMenu"
+          style={{ position: 'fixed', left: treeMenu.x, top: treeMenu.y, right: 'auto' }}
+          role="menu"
+          aria-label={t('pane.files')}
+        >
+          {tree.nodes[treeMenu.id]?.type === 'folder' ? (
+            <>
+              <button type="button" className="menuItem" onClick={() => runWithSelected(treeMenu.id, doNewFile)}>
+                {t('toolbar.newFile')}
+              </button>
+              <button type="button" className="menuItem" onClick={() => runWithSelected(treeMenu.id, doNewFolder)}>
+                {t('toolbar.newFolder')}
+              </button>
+              <div className="menuSep" />
+            </>
+          ) : null}
+
+          <button type="button" className="menuItem" onClick={() => runWithSelected(treeMenu.id, doRename)}>
+            {t('toolbar.rename')}
+          </button>
+          <button
+            type="button"
+            className="menuItem"
+            onClick={() => runWithSelected(treeMenu.id, () => setShowMove(true))}
+          >
+            {t('toolbar.move')}
+          </button>
+          <div className="menuSep" />
+          <button type="button" className="menuItem" onClick={() => runWithSelected(treeMenu.id, doDelete)}>
+            {t('toolbar.delete')}
+          </button>
+        </div>
       ) : null}
 
       {showSettings && (

@@ -296,6 +296,10 @@ html[data-theme='dark'] .appRoot {
   z-index: 50;
 }
 
+.treeContextMenu {
+  z-index: 120;
+}
+
 .menuItem {
   width: 100%;
   text-align: left;

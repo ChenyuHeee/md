@@ -14,6 +14,7 @@ export function FileTree(props: {
   language: Language;
   onToggleFolder: (id: string) => void;
   onSelect: (id: string) => void;
+  onContextMenu?: (id: string, clientX: number, clientY: number) => void;
 }) {
   const { t } = useI18n(props.language);
   const root = props.tree.nodes[props.tree.rootId];
@@ -54,6 +55,11 @@ export function FileTree(props: {
             className={`treeRow ${selected ? 'isSelected' : ''}`}
             style={{ paddingLeft: 8 + depth * 14 }}
             onClick={() => props.onSelect(node.id)}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              props.onContextMenu?.(node.id, e.clientX, e.clientY);
+            }}
             onDoubleClick={() => {
               if (isFolder) props.onToggleFolder(node.id);
             }}
