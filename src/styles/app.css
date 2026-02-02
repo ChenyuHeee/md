@@ -147,6 +147,9 @@ html[data-theme='dark'] .appRoot {
   padding: 6px 8px;
   border-bottom: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface-1) 70%, transparent);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .editorToolbarSep {
@@ -233,6 +236,13 @@ html[data-theme='dark'] .appRoot {
 .preview code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
     'Courier New', monospace;
+}
+
+.previewActiveLine {
+  border-radius: 10px;
+  outline: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  scroll-margin-top: 28px;
 }
 
 .modalBackdrop {

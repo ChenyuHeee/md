@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { FileText, Folder, FolderOpen } from 'lucide-react';
 import type { Language } from '../i18n/translations';
 import { useI18n } from '../i18n/useI18n';
@@ -15,9 +15,12 @@ export function FileTree(props: {
   onToggleFolder: (id: string) => void;
   onSelect: (id: string) => void;
   onContextMenu?: (id: string, clientX: number, clientY: number) => void;
+  onRequestRename?: (id: string) => void;
+  onRequestDelete?: (id: string) => void;
 }) {
   const { t } = useI18n(props.language);
   const root = props.tree.nodes[props.tree.rootId];
+  const wrapRef = useRef<HTMLDivElement | null>(null);
 
   const rows = useMemo<Array<{ node: FileNode; depth: number }>>(() => {
     if (!root) return [] as Array<{ node: FileNode; depth: number }>;
@@ -41,7 +44,27 @@ export function FileTree(props: {
   if (!root) return <div className="fileTree" style={{ color: 'var(--text-2)' }}>{t('fileTree.error')}</div>;
 
   return (
-    <div className="fileTree">
+    <div
+      className="fileTree"
+      ref={wrapRef}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        const id = props.selectedId;
+        if (!id) return;
+
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          props.onRequestRename?.(id);
+          return;
+        }
+
+        const isDeleteKey = e.key === 'Backspace' || e.key === 'Delete';
+        if (isDeleteKey && e.metaKey) {
+          e.preventDefault();
+          props.onRequestDelete?.(id);
+        }
+      }}
+    >
 
       {rows.map((row) => {
         const { node, depth } = row;
@@ -54,10 +77,14 @@ export function FileTree(props: {
             key={node.id}
             className={`treeRow ${selected ? 'isSelected' : ''}`}
             style={{ paddingLeft: 8 + depth * 14 }}
-            onClick={() => props.onSelect(node.id)}
+            onClick={() => {
+              wrapRef.current?.focus();
+              props.onSelect(node.id);
+            }}
             onContextMenu={(e) => {
               e.preventDefault();
               e.stopPropagation();
+              wrapRef.current?.focus();
               props.onContextMenu?.(node.id, e.clientX, e.clientY);
             }}
             onDoubleClick={() => {

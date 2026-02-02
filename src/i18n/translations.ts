@@ -57,7 +57,12 @@ export type I18nKey =
   | 'fmt.bold'
   | 'fmt.italic'
   | 'fmt.underline'
-  | 'fmt.strike';
+  | 'fmt.strike'
+  | 'fmt.code'
+  | 'fmt.quote'
+  | 'fmt.ul'
+  | 'fmt.ol'
+  | 'fmt.link';
 
 export const translations: Record<Language, Record<I18nKey, string>> = {
   'zh-CN': {
@@ -119,6 +124,11 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'fmt.italic': '斜体',
     'fmt.underline': '下划线',
     'fmt.strike': '删除线',
+    'fmt.code': '行内代码',
+    'fmt.quote': '引用',
+    'fmt.ul': '无序列表',
+    'fmt.ol': '有序列表',
+    'fmt.link': '链接',
   },
   en: {
     'app.name': 'Modang',
@@ -179,6 +189,11 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'fmt.italic': 'Italic',
     'fmt.underline': 'Underline',
     'fmt.strike': 'Strikethrough',
+    'fmt.code': 'Inline code',
+    'fmt.quote': 'Blockquote',
+    'fmt.ul': 'Bulleted list',
+    'fmt.ol': 'Numbered list',
+    'fmt.link': 'Link',
   },
 };
 

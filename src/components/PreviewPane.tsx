@@ -7,10 +7,16 @@ import {
   MODANG_ASSET_PREFIX,
 } from '../markdown/assets';
 
-export function PreviewPane(props: { markdown: string }) {
+export function PreviewPane(props: {
+  markdown: string;
+  activeLine?: number;
+  onRequestFocusLine?: (line: number) => void;
+}) {
   const md = useMemo(() => createMarkdownIt(), []);
   const [html, setHtml] = useState('');
   const urlsToRevokeRef = useRef<string[]>([]);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const activeElRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     const rawHtml = md.render(props.markdown || '');
@@ -61,5 +67,68 @@ export function PreviewPane(props: { markdown: string }) {
     };
   }, []);
 
-  return <div dangerouslySetInnerHTML={{ __html: html }} />;
+  useEffect(() => {
+    const line = props.activeLine;
+    if (!line) return;
+    const root = rootRef.current;
+    if (!root) return;
+
+    // Find the closest element whose source line <= cursor line.
+    const items = Array.from(root.querySelectorAll<HTMLElement>('[data-source-line]'));
+    if (items.length === 0) return;
+
+    let best: HTMLElement | null = null;
+    let bestLine = -1;
+    for (const el of items) {
+      const raw = el.getAttribute('data-source-line');
+      const n = raw ? Number.parseInt(raw, 10) : NaN;
+      if (!Number.isFinite(n)) continue;
+      if (n <= line && n > bestLine) {
+        best = el;
+        bestLine = n;
+      }
+    }
+    if (!best) best = items[0] ?? null;
+    if (!best) return;
+
+    // Update highlight.
+    if (activeElRef.current && activeElRef.current !== best) {
+      activeElRef.current.classList.remove('previewActiveLine');
+    }
+    activeElRef.current = best;
+    best.classList.add('previewActiveLine');
+
+    // Scroll minimally to keep it visible.
+    best.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [props.activeLine, html]);
+
+  const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!props.onRequestFocusLine) return;
+    const root = rootRef.current;
+    if (!root) return;
+
+    // Don't steal clicks from links (including Cmd/Ctrl click).
+    const target = e.target as HTMLElement | null;
+    if (!target) return;
+    if (target.closest('a')) return;
+
+    // If user is selecting text in preview, do nothing.
+    try {
+      const sel = window.getSelection();
+      if (sel && !sel.isCollapsed) return;
+    } catch {
+      // ignore
+    }
+
+    const el = target.closest<HTMLElement>('[data-source-line]');
+    if (!el || !root.contains(el)) return;
+
+    const raw = el.getAttribute('data-source-line');
+    const line = raw ? Number.parseInt(raw, 10) : NaN;
+    if (!Number.isFinite(line) || line <= 0) return;
+
+    props.onRequestFocusLine(line);
+  };
+
+  return <div ref={rootRef} onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />;
 }

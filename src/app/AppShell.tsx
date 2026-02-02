@@ -14,6 +14,11 @@ import {
   Italic,
   Underline,
   Strikethrough,
+  Code,
+  Quote,
+  List,
+  ListOrdered,
+  Link2,
 } from 'lucide-react';
 import { FileTree } from '../components/FileTree';
 import { Splitter } from '../components/Splitter';
@@ -120,6 +125,43 @@ export function AppShell() {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
   const [editor, setEditor] = useState<MonacoEditor.IStandaloneCodeEditor | null>(null);
+  const [cursorLine, setCursorLine] = useState<number>(1);
+
+  const focusEditorLine = useCallback(
+    (line: number) => {
+      if (!editor) return;
+      const model = editor.getModel();
+      if (!model) return;
+
+      const maxLine = model.getLineCount();
+      const safeLine = Math.max(1, Math.min(line, maxLine));
+      editor.setPosition({ lineNumber: safeLine, column: 1 });
+      editor.revealLineInCenterIfOutsideViewport(safeLine);
+      editor.focus();
+    },
+    [editor],
+  );
+
+  useEffect(() => {
+    if (!editor) return;
+    const sub = editor.onDidChangeCursorPosition(() => {
+      const pos = editor.getPosition();
+      if (!pos) return;
+      setCursorLine(pos.lineNumber);
+    });
+
+    // Initialize once.
+    const pos = editor.getPosition();
+    if (pos) setCursorLine(pos.lineNumber);
+
+    return () => {
+      try {
+        sub.dispose();
+      } catch {
+        // ignore
+      }
+    };
+  }, [editor]);
 
   const [fileTreeOpen, setFileTreeOpen] = useState(() => {
     if (typeof window === 'undefined') return true;
@@ -174,7 +216,7 @@ export function AppShell() {
   }, [content]);
 
   const [showSettings, setShowSettings] = useState(false);
-  const [showMove, setShowMove] = useState(false);
+  const [moveTargetId, setMoveTargetId] = useState<string | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
 
   const [treeMenu, setTreeMenu] = useState<null | { id: string; x: number; y: number }>(null);
@@ -363,6 +405,139 @@ export function AppShell() {
     [editor, onChangeContent],
   );
 
+  const applyLinePrefix = useCallback(
+    (prefix: string, detect: RegExp, remove: RegExp = detect) => {
+      if (!editor) return;
+      const model = editor.getModel();
+      if (!model) return;
+
+      const selection = editor.getSelection();
+      const pos = editor.getPosition();
+      const startLine = selection?.startLineNumber ?? pos?.lineNumber ?? 1;
+      const endLine = selection?.endLineNumber ?? pos?.lineNumber ?? startLine;
+
+      const edits: MonacoEditor.IIdentifiedSingleEditOperation[] = [];
+      for (let line = startLine; line <= endLine; line++) {
+        const lineText = model.getLineContent(line);
+        const already = detect.test(lineText);
+        const finalText = already ? lineText.replace(remove, '') : `${prefix}${lineText}`;
+        edits.push({
+          range: {
+            startLineNumber: line,
+            startColumn: 1,
+            endLineNumber: line,
+            endColumn: lineText.length + 1,
+          },
+          text: finalText,
+          forceMoveMarkers: true,
+        });
+      }
+
+      editor.executeEdits('modang-format', edits);
+      editor.focus();
+      onChangeContent(editor.getValue());
+    },
+    [editor, onChangeContent],
+  );
+
+  const applyUnorderedList = useCallback(() => {
+    // Toggle -/*/+ list marker at the start of each selected line.
+    applyLinePrefix('- ', /^[-*+]\s+/, /^[-*+]\s+/);
+  }, [applyLinePrefix]);
+
+  const applyOrderedList = useCallback(() => {
+    if (!editor) return;
+    const model = editor.getModel();
+    if (!model) return;
+
+    const selection = editor.getSelection();
+    const pos = editor.getPosition();
+    const startLine = selection?.startLineNumber ?? pos?.lineNumber ?? 1;
+    const endLine = selection?.endLineNumber ?? pos?.lineNumber ?? startLine;
+
+    const orderedRe = /^\d+\.\s+/;
+    let allAlready = true;
+    for (let line = startLine; line <= endLine; line++) {
+      const lineText = model.getLineContent(line);
+      if (!orderedRe.test(lineText)) {
+        allAlready = false;
+        break;
+      }
+    }
+
+    const edits: MonacoEditor.IIdentifiedSingleEditOperation[] = [];
+    let n = 1;
+    for (let line = startLine; line <= endLine; line++) {
+      const lineText = model.getLineContent(line);
+      const finalText = allAlready ? lineText.replace(orderedRe, '') : `${n++}. ${lineText}`;
+      edits.push({
+        range: {
+          startLineNumber: line,
+          startColumn: 1,
+          endLineNumber: line,
+          endColumn: lineText.length + 1,
+        },
+        text: finalText,
+        forceMoveMarkers: true,
+      });
+    }
+
+    editor.executeEdits('modang-format', edits);
+    editor.focus();
+    onChangeContent(editor.getValue());
+  }, [editor, onChangeContent]);
+
+  const applyLink = useCallback(() => {
+    if (!editor) return;
+    const model = editor.getModel();
+    if (!model) return;
+
+    const selection = editor.getSelection();
+    const pos = editor.getPosition();
+    const range =
+      selection ??
+      (pos
+        ? {
+            startLineNumber: pos.lineNumber,
+            startColumn: pos.column,
+            endLineNumber: pos.lineNumber,
+            endColumn: pos.column,
+          }
+        : model.getFullModelRange());
+
+    const selectedText = model.getValueInRange(range);
+    const isEmpty = !selectedText;
+    const text = isEmpty ? '[]()' : `[${selectedText}]()`;
+
+    editor.executeEdits('modang-format', [{ range, text, forceMoveMarkers: true }]);
+
+    // Best-effort cursor placement for single-line selections.
+    if (range.startLineNumber === range.endLineNumber) {
+      const startColumn = range.startColumn;
+      if (isEmpty) {
+        // Inside []
+        editor.setSelection({
+          startLineNumber: range.startLineNumber,
+          startColumn: startColumn + 1,
+          endLineNumber: range.startLineNumber,
+          endColumn: startColumn + 1,
+        });
+      } else {
+        // Inside ()
+        const c = startColumn + selectedText.length + 3;
+        editor.setSelection({
+          startLineNumber: range.startLineNumber,
+          startColumn: c,
+          endLineNumber: range.startLineNumber,
+          endColumn: c,
+        });
+      }
+    }
+
+    editor.focus();
+    onChangeContent(editor.getValue());
+  }, [editor, onChangeContent]);
+
   const openFile = useCallback(
     async (fileId: string) => {
       if (!tree) return;
@@ -418,12 +593,6 @@ export function AppShell() {
     [tree],
   );
 
-  const runWithSelected = useCallback((id: string, fn: () => void) => {
-    setSelectedId(id);
-    setTreeMenu(null);
-    fn();
-  }, []);
-
   const onToggleFolder = useCallback((id: string) => {
     setExpanded((prev) => {
       const next = new Set(prev);
@@ -442,14 +611,9 @@ export function AppShell() {
     return tree;
   };
 
-  const requireSelected = (): string => {
-    if (!selectedId) throw new Error('No selection');
-    return selectedId;
-  };
-
-  const doNewFile = useCallback(async () => {
+  const doNewFileAt = useCallback(async (targetId: string | null) => {
     const treeState = requireTree();
-    const parentId = resolveParentFolderId(treeState, selectedId);
+    const parentId = resolveParentFolderId(treeState, targetId);
     const name = prompt(t('prompt.newFile'), 'untitled');
     if (!name) return;
 
@@ -462,11 +626,15 @@ export function AppShell() {
 
     await saveFileText(id, '');
     await openFile(id);
-  }, [openFile, selectedId, tree, t]);
+  }, [openFile, t, tree]);
 
-  const doNewFolder = useCallback(() => {
+  const doNewFile = useCallback(async () => {
+    await doNewFileAt(selectedId);
+  }, [doNewFileAt, selectedId]);
+
+  const doNewFolderAt = useCallback((targetId: string | null) => {
     const treeState = requireTree();
-    const parentId = resolveParentFolderId(treeState, selectedId);
+    const parentId = resolveParentFolderId(treeState, targetId);
     const name = prompt(t('prompt.newFolder'), t('default.newFolderName'));
     if (!name) return;
 
@@ -474,11 +642,14 @@ export function AppShell() {
     setTree(nextTree);
     persistTree(nextTree);
     setExpanded((prev) => new Set(prev).add(parentId).add(id));
-  }, [selectedId, tree, t]);
+  }, [t, tree]);
 
-  const doRename = useCallback(() => {
+  const doNewFolder = useCallback(() => {
+    doNewFolderAt(selectedId);
+  }, [doNewFolderAt, selectedId]);
+
+  const doRenameAt = useCallback((id: string) => {
     const treeState = requireTree();
-    const id = requireSelected();
     const node = treeState.nodes[id];
     if (!node) return;
 
@@ -489,11 +660,15 @@ export function AppShell() {
     const nextTree = renameNode(treeState, id, nextName);
     setTree(nextTree);
     persistTree(nextTree);
-  }, [selectedId, tree, t]);
+  }, [t, tree]);
 
-  const doDelete = useCallback(() => {
+  const doRename = useCallback(() => {
+    if (!selectedId) return;
+    doRenameAt(selectedId);
+  }, [doRenameAt, selectedId]);
+
+  const doDeleteAt = useCallback((id: string) => {
     const treeState = requireTree();
-    const id = requireSelected();
     const node = treeState.nodes[id];
     if (!node) return;
     if (!node.parentId) return;
@@ -518,12 +693,18 @@ export function AppShell() {
     }
 
     setSelectedId(nextTree.rootId);
-  }, [currentFileId, selectedId, tree, t]);
+  }, [currentFileId, t, tree]);
+
+  const doDelete = useCallback(() => {
+    if (!selectedId) return;
+    doDeleteAt(selectedId);
+  }, [doDeleteAt, selectedId]);
 
   const doMoveTo = useCallback(
     (folderId: string) => {
       const treeState = requireTree();
-      const id = requireSelected();
+      const id = moveTargetId;
+      if (!id) return;
       try {
         const nextTree = moveNode(treeState, id, folderId);
         setTree(nextTree);
@@ -533,7 +714,7 @@ export function AppShell() {
         alert((e as Error).message);
       }
     },
-    [selectedId, tree],
+    [moveTargetId, tree],
   );
 
   const doExportMarkdown = useCallback(() => {
@@ -701,7 +882,14 @@ export function AppShell() {
             onClick={doDelete}
             className="ui-iconBtn--danger"
           />
-          <IconButton icon={<MoveRight size={18} />} label={t('toolbar.move')} onClick={() => setShowMove(true)} />
+          <IconButton
+            icon={<MoveRight size={18} />}
+            label={t('toolbar.move')}
+            onClick={() => {
+              if (!selectedId) return;
+              setMoveTargetId(selectedId);
+            }}
+          />
           <div id="exportMenuWrap" style={{ position: 'relative' }}>
             <IconButton
               icon={<Download size={18} />}
@@ -795,6 +983,16 @@ export function AppShell() {
                       label={t('fmt.strike')}
                       onClick={() => applyWrap('~~', '~~')}
                     />
+                    <div className="editorToolbarSep" />
+                    <IconButton icon={<Code size={18} />} label={t('fmt.code')} onClick={() => applyWrap('`', '`')} />
+                    <IconButton
+                      icon={<Quote size={18} />}
+                      label={t('fmt.quote')}
+                      onClick={() => applyLinePrefix('> ', /^>\s?/, /^>\s?/)}
+                    />
+                    <IconButton icon={<List size={18} />} label={t('fmt.ul')} onClick={applyUnorderedList} />
+                    <IconButton icon={<ListOrdered size={18} />} label={t('fmt.ol')} onClick={applyOrderedList} />
+                    <IconButton icon={<Link2 size={18} />} label={t('fmt.link')} onClick={applyLink} />
                   </div>
                   <div className="editorWrap">
                     <EditorPane
@@ -816,7 +1014,11 @@ export function AppShell() {
                 </div>
                 <div className="paneBody">
                   <div className="preview">
-                    <PreviewPane markdown={content} />
+                    <PreviewPane
+                      markdown={content}
+                      activeLine={cursorLine}
+                      onRequestFocusLine={focusEditorLine}
+                    />
                   </div>
                 </div>
               </div>
@@ -841,6 +1043,8 @@ export function AppShell() {
                     onToggleFolder={onToggleFolder}
                     onSelect={onSelect}
                     onContextMenu={onTreeContextMenu}
+                    onRequestRename={(id) => doRenameAt(id)}
+                    onRequestDelete={(id) => doDeleteAt(id)}
                   />
                 </div>
               </div>
@@ -884,6 +1088,16 @@ export function AppShell() {
                     label={t('fmt.strike')}
                     onClick={() => applyWrap('~~', '~~')}
                   />
+                  <div className="editorToolbarSep" />
+                  <IconButton icon={<Code size={18} />} label={t('fmt.code')} onClick={() => applyWrap('`', '`')} />
+                  <IconButton
+                    icon={<Quote size={18} />}
+                    label={t('fmt.quote')}
+                    onClick={() => applyLinePrefix('> ', /^>\s?/, /^>\s?/)}
+                  />
+                  <IconButton icon={<List size={18} />} label={t('fmt.ul')} onClick={applyUnorderedList} />
+                  <IconButton icon={<ListOrdered size={18} />} label={t('fmt.ol')} onClick={applyOrderedList} />
+                  <IconButton icon={<Link2 size={18} />} label={t('fmt.link')} onClick={applyLink} />
                 </div>
                 <div className="editorWrap">
                   <EditorPane
@@ -913,7 +1127,11 @@ export function AppShell() {
                 </div>
                 <div className="paneBody">
                   <div className="preview">
-                    <PreviewPane markdown={content} />
+                    <PreviewPane
+                      markdown={content}
+                      activeLine={cursorLine}
+                      onRequestFocusLine={focusEditorLine}
+                    />
                   </div>
                 </div>
               </div>
@@ -946,6 +1164,8 @@ export function AppShell() {
                   onToggleFolder={onToggleFolder}
                   onSelect={onSelect}
                   onContextMenu={onTreeContextMenu}
+                  onRequestRename={(id) => doRenameAt(id)}
+                  onRequestDelete={(id) => doDeleteAt(id)}
                 />
               </div>
             </div>
@@ -963,28 +1183,59 @@ export function AppShell() {
         >
           {tree.nodes[treeMenu.id]?.type === 'folder' ? (
             <>
-              <button type="button" className="menuItem" onClick={() => runWithSelected(treeMenu.id, doNewFile)}>
+              <button
+                type="button"
+                className="menuItem"
+                onClick={async () => {
+                  setTreeMenu(null);
+                  await doNewFileAt(treeMenu.id);
+                }}
+              >
                 {t('toolbar.newFile')}
               </button>
-              <button type="button" className="menuItem" onClick={() => runWithSelected(treeMenu.id, doNewFolder)}>
+              <button
+                type="button"
+                className="menuItem"
+                onClick={() => {
+                  setTreeMenu(null);
+                  doNewFolderAt(treeMenu.id);
+                }}
+              >
                 {t('toolbar.newFolder')}
               </button>
               <div className="menuSep" />
             </>
           ) : null}
 
-          <button type="button" className="menuItem" onClick={() => runWithSelected(treeMenu.id, doRename)}>
+          <button
+            type="button"
+            className="menuItem"
+            onClick={() => {
+              setTreeMenu(null);
+              doRenameAt(treeMenu.id);
+            }}
+          >
             {t('toolbar.rename')}
           </button>
           <button
             type="button"
             className="menuItem"
-            onClick={() => runWithSelected(treeMenu.id, () => setShowMove(true))}
+            onClick={() => {
+              setTreeMenu(null);
+              setMoveTargetId(treeMenu.id);
+            }}
           >
             {t('toolbar.move')}
           </button>
           <div className="menuSep" />
-          <button type="button" className="menuItem" onClick={() => runWithSelected(treeMenu.id, doDelete)}>
+          <button
+            type="button"
+            className="menuItem"
+            onClick={() => {
+              setTreeMenu(null);
+              doDeleteAt(treeMenu.id);
+            }}
+          >
             {t('toolbar.delete')}
           </button>
         </div>
@@ -1000,15 +1251,15 @@ export function AppShell() {
         />
       )}
 
-      {showMove && selectedId && (
+      {moveTargetId && tree.nodes[moveTargetId] ? (
         <MoveDialog
           tree={tree}
-          currentId={selectedId}
+          currentId={moveTargetId}
           language={language}
           onMoveTo={doMoveTo}
-          onClose={() => setShowMove(false)}
+          onClose={() => setMoveTargetId(null)}
         />
-      )}
+      ) : null}
     </div>
   );
 }
