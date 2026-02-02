@@ -7,6 +7,10 @@ import {
   MoveRight,
   Download,
   Settings as SettingsIcon,
+  Bold,
+  Italic,
+  Underline,
+  Strikethrough,
 } from 'lucide-react';
 import { FileTree } from '../components/FileTree';
 import { Splitter } from '../components/Splitter';
@@ -45,6 +49,7 @@ import {
   openPrintWindow,
   renderMarkdownHtmlWithInlinedAssets,
 } from '../export/export';
+import type { editor as MonacoEditor } from 'monaco-editor';
 
 function debounce<T extends (...args: any[]) => void>(fn: T, waitMs: number) {
   let t: number | null = null;
@@ -101,6 +106,8 @@ export function AppShell() {
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
   const [content, setContent] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+
+  const [editor, setEditor] = useState<MonacoEditor.IStandaloneCodeEditor | null>(null);
 
   const currentDisplayName = useMemo(() => {
     if (!tree || !currentFileId) return '';
@@ -209,6 +216,85 @@ export function AppShell() {
       if (currentFileId) debouncedSave(currentFileId, next);
     },
     [currentFileId, debouncedSave],
+  );
+
+  const applyWrap = useCallback(
+    (prefix: string, suffix: string) => {
+      if (!editor) return;
+      const model = editor.getModel();
+      if (!model) return;
+
+      const selection = editor.getSelection();
+      const pos = editor.getPosition();
+      const range =
+        selection ??
+        (pos
+          ? {
+              startLineNumber: pos.lineNumber,
+              startColumn: pos.column,
+              endLineNumber: pos.lineNumber,
+              endColumn: pos.column,
+            }
+          : model.getFullModelRange());
+
+      const selectedText = model.getValueInRange(range);
+      const isEmpty = !selectedText;
+      const text = isEmpty ? `${prefix}${suffix}` : `${prefix}${selectedText}${suffix}`;
+
+      editor.executeEdits('modang-format', [{ range, text, forceMoveMarkers: true }]);
+
+      // Put cursor inside the wrapper when nothing selected.
+      if (isEmpty) {
+        editor.setSelection({
+          startLineNumber: range.startLineNumber,
+          startColumn: range.startColumn + prefix.length,
+          endLineNumber: range.startLineNumber,
+          endColumn: range.startColumn + prefix.length,
+        });
+      }
+
+      editor.focus();
+      onChangeContent(editor.getValue());
+    },
+    [editor, onChangeContent],
+  );
+
+  const applyHeading = useCallback(
+    (level: 1 | 2) => {
+      if (!editor) return;
+      const model = editor.getModel();
+      if (!model) return;
+
+      const selection = editor.getSelection();
+      const pos = editor.getPosition();
+      const startLine = selection?.startLineNumber ?? pos?.lineNumber ?? 1;
+      const endLine = selection?.endLineNumber ?? pos?.lineNumber ?? startLine;
+
+      const prefix = `${'#'.repeat(level)} `;
+      const edits: MonacoEditor.IIdentifiedSingleEditOperation[] = [];
+
+      for (let line = startLine; line <= endLine; line++) {
+        const lineText = model.getLineContent(line);
+        const nextLine = lineText.replace(/^#{1,6}\s+/, '');
+        const already = lineText.startsWith(prefix);
+        const finalText = already ? nextLine : `${prefix}${nextLine}`;
+        edits.push({
+          range: {
+            startLineNumber: line,
+            startColumn: 1,
+            endLineNumber: line,
+            endColumn: lineText.length + 1,
+          },
+          text: finalText,
+          forceMoveMarkers: true,
+        });
+      }
+
+      editor.executeEdits('modang-format', edits);
+      editor.focus();
+      onChangeContent(editor.getValue());
+    },
+    [editor, onChangeContent],
   );
 
   const openFile = useCallback(
@@ -593,12 +679,40 @@ export function AppShell() {
             <div className="paneHeader">
               <div className="paneTitle">{t('pane.editor')}</div>
             </div>
-            <div className="paneBody">
-              <EditorPane
-                value={content}
-                onChange={onChangeContent}
-                theme={resolvedTheme === 'dark' ? 'vs-dark' : 'vs'}
-              />
+            <div className="paneBody paneBodyCol">
+              <div className="editorToolbar" role="toolbar" aria-label={t('fmt.toolbar')}>
+                <IconButton
+                  icon={<span className="fmtTag">H1</span>}
+                  label={t('fmt.h1')}
+                  onClick={() => applyHeading(1)}
+                />
+                <IconButton
+                  icon={<span className="fmtTag">H2</span>}
+                  label={t('fmt.h2')}
+                  onClick={() => applyHeading(2)}
+                />
+                <div className="editorToolbarSep" />
+                <IconButton icon={<Bold size={18} />} label={t('fmt.bold')} onClick={() => applyWrap('**', '**')} />
+                <IconButton icon={<Italic size={18} />} label={t('fmt.italic')} onClick={() => applyWrap('*', '*')} />
+                <IconButton
+                  icon={<Underline size={18} />}
+                  label={t('fmt.underline')}
+                  onClick={() => applyWrap('<u>', '</u>')}
+                />
+                <IconButton
+                  icon={<Strikethrough size={18} />}
+                  label={t('fmt.strike')}
+                  onClick={() => applyWrap('~~', '~~')}
+                />
+              </div>
+              <div className="editorWrap">
+                <EditorPane
+                  value={content}
+                  onChange={onChangeContent}
+                  onEditorMount={setEditor}
+                  theme={resolvedTheme === 'dark' ? 'vs-dark' : 'vs'}
+                />
+              </div>
             </div>
           </div>
 

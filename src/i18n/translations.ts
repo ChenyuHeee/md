@@ -46,7 +46,14 @@ export type I18nKey =
   | 'theme.light'
   | 'theme.dark'
   | 'lang.zh'
-  | 'lang.en';
+  | 'lang.en'
+  | 'fmt.toolbar'
+  | 'fmt.h1'
+  | 'fmt.h2'
+  | 'fmt.bold'
+  | 'fmt.italic'
+  | 'fmt.underline'
+  | 'fmt.strike';
 
 export const translations: Record<Language, Record<I18nKey, string>> = {
   'zh-CN': {
@@ -97,6 +104,13 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'theme.dark': '深色',
     'lang.zh': '中文',
     'lang.en': 'English',
+    'fmt.toolbar': '样式工具栏',
+    'fmt.h1': '一级标题',
+    'fmt.h2': '二级标题',
+    'fmt.bold': '加粗',
+    'fmt.italic': '斜体',
+    'fmt.underline': '下划线',
+    'fmt.strike': '删除线',
   },
   en: {
     'app.name': 'Modang',
@@ -146,6 +160,13 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'theme.dark': 'Dark',
     'lang.zh': '中文',
     'lang.en': 'English',
+    'fmt.toolbar': 'Formatting toolbar',
+    'fmt.h1': 'Heading 1',
+    'fmt.h2': 'Heading 2',
+    'fmt.bold': 'Bold',
+    'fmt.italic': 'Italic',
+    'fmt.underline': 'Underline',
+    'fmt.strike': 'Strikethrough',
   },
 };
 

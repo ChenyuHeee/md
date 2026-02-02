@@ -9,6 +9,7 @@ export function EditorPane(props: {
   value: string;
   onChange: (value: string) => void;
   theme: 'vs' | 'vs-dark';
+  onEditorMount?: (editor: MonacoEditor.IStandaloneCodeEditor) => void;
 }) {
   const editorRef = useRef<MonacoEditor.IStandaloneCodeEditor | null>(null);
 
@@ -27,6 +28,7 @@ export function EditorPane(props: {
 
   const onMount: OnMount = (editor) => {
     editorRef.current = editor;
+    props.onEditorMount?.(editor);
   };
 
   useEffect(() => {

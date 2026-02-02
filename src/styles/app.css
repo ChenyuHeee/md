@@ -113,6 +113,40 @@ html[data-theme='dark'] .appRoot {
   overflow: auto;
 }
 
+.paneBodyCol {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editorToolbar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-1) 70%, transparent);
+}
+
+.editorToolbarSep {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.fmtTag {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.editorWrap {
+  flex: 1;
+  min-height: 0;
+}
+
 .splitter {
   width: 10px;
   cursor: col-resize;
