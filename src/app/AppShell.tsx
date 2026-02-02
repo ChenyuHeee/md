@@ -7,6 +7,9 @@ import {
   MoveRight,
   Download,
   Settings as SettingsIcon,
+  PanelLeft,
+  Eye,
+  PenLine,
   Bold,
   Italic,
   Underline,
@@ -93,6 +96,15 @@ function ensureExtension(name: string, ext: string) {
 }
 
 export function AppShell() {
+  const [isCompact, setIsCompact] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(max-width: 900px)').matches;
+  });
+  const [isPortrait, setIsPortrait] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(orientation: portrait)').matches;
+  });
+
   const [booted, setBooted] = useState(false);
   const [settings, setSettings] = useState<Settings>(() => loadSettings());
   const themeMode = settings.themeMode;
@@ -108,6 +120,46 @@ export function AppShell() {
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
   const [editor, setEditor] = useState<MonacoEditor.IStandaloneCodeEditor | null>(null);
+
+  const [fileTreeOpen, setFileTreeOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return !window.matchMedia('(orientation: portrait)').matches;
+  });
+  const [previewOpen, setPreviewOpen] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    return !window.matchMedia('(orientation: portrait)').matches;
+  });
+  const [mobileMain, setMobileMain] = useState<'editor' | 'preview'>('editor');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mqCompact = window.matchMedia('(max-width: 900px)');
+    const mqPortrait = window.matchMedia('(orientation: portrait)');
+
+    const apply = () => {
+      setIsCompact(mqCompact.matches);
+      setIsPortrait(mqPortrait.matches);
+    };
+
+    apply();
+
+    const onCompact = () => apply();
+    const onPortrait = () => apply();
+    mqCompact.addEventListener('change', onCompact);
+    mqPortrait.addEventListener('change', onPortrait);
+    return () => {
+      mqCompact.removeEventListener('change', onCompact);
+      mqPortrait.removeEventListener('change', onPortrait);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Portrait: file tree auto-collapsed, editor/preview is single-pane swap.
+    if (isPortrait) {
+      setFileTreeOpen(false);
+      setMobileMain('editor');
+    }
+  }, [isPortrait]);
 
   const currentDisplayName = useMemo(() => {
     if (!tree || !currentFileId) return '';
@@ -328,9 +380,13 @@ export function AppShell() {
       if (!tree) return;
       const node = tree.nodes[id];
       if (node?.type === 'folder') return;
+
+      if (isCompact) setFileTreeOpen(false);
+      if (isPortrait) setMobileMain('editor');
+
       void openFile(id);
     },
-    [openFile, tree],
+    [isCompact, isPortrait, openFile, tree],
   );
 
   const onToggleFolder = useCallback((id: string) => {
@@ -568,6 +624,10 @@ export function AppShell() {
     );
   }
 
+  const compactMode = isCompact || isPortrait;
+  const showEditor = !isPortrait || mobileMain === 'editor';
+  const showPreview = (!isPortrait && previewOpen) || (isPortrait && mobileMain === 'preview');
+
   return (
     <div className="appRoot">
       <div className="topbar">
@@ -578,6 +638,25 @@ export function AppShell() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <IconButton
+            icon={<PanelLeft size={18} />}
+            label={t('ui.toggleFileTree')}
+            onClick={() => setFileTreeOpen((v) => !v)}
+          />
+          <IconButton
+            icon={isPortrait ? (mobileMain === 'editor' ? <Eye size={18} /> : <PenLine size={18} />) : <Eye size={18} />}
+            label={
+              isPortrait
+                ? mobileMain === 'editor'
+                  ? t('ui.showPreview')
+                  : t('ui.showEditor')
+                : t('ui.togglePreview')
+            }
+            onClick={() => {
+              if (isPortrait) setMobileMain((v) => (v === 'editor' ? 'preview' : 'editor'));
+              else setPreviewOpen((v) => !v);
+            }}
+          />
           <IconButton icon={<FilePlus2 size={18} />} label={t('toolbar.newFile')} onClick={doNewFile} />
           <IconButton icon={<FolderPlus size={18} />} label={t('toolbar.newFolder')} onClick={doNewFolder} />
           <IconButton icon={<Pencil size={18} />} label={t('toolbar.rename')} onClick={doRename} />
@@ -648,98 +727,194 @@ export function AppShell() {
       </div>
 
       <div className="workspace">
-        <div className="shell">
-          <div className="paneCard" style={{ width: leftWidth }}>
-            <div className="paneHeader">
-              <div className="paneTitle">{t('pane.files')}</div>
-              <div className="subtle" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {currentDisplayName}
+        {compactMode ? (
+          <div className="shell compactShell">
+            {showEditor ? (
+              <div className="paneCard" style={{ flex: 1 }}>
+                <div className="paneHeader">
+                  <div className="paneTitle">{t('pane.editor')}</div>
+                  <div className="subtle">{currentDisplayName || ''}</div>
+                </div>
+                <div className="paneBody paneBodyCol">
+                  <div className="editorToolbar" role="toolbar" aria-label={t('fmt.toolbar')}>
+                    <IconButton
+                      icon={<span className="fmtTag">H1</span>}
+                      label={t('fmt.h1')}
+                      onClick={() => applyHeading(1)}
+                    />
+                    <IconButton
+                      icon={<span className="fmtTag">H2</span>}
+                      label={t('fmt.h2')}
+                      onClick={() => applyHeading(2)}
+                    />
+                    <div className="editorToolbarSep" />
+                    <IconButton icon={<Bold size={18} />} label={t('fmt.bold')} onClick={() => applyWrap('**', '**')} />
+                    <IconButton icon={<Italic size={18} />} label={t('fmt.italic')} onClick={() => applyWrap('*', '*')} />
+                    <IconButton
+                      icon={<Underline size={18} />}
+                      label={t('fmt.underline')}
+                      onClick={() => applyWrap('<u>', '</u>')}
+                    />
+                    <IconButton
+                      icon={<Strikethrough size={18} />}
+                      label={t('fmt.strike')}
+                      onClick={() => applyWrap('~~', '~~')}
+                    />
+                  </div>
+                  <div className="editorWrap">
+                    <EditorPane
+                      value={content}
+                      onChange={onChangeContent}
+                      onEditorMount={setEditor}
+                      theme={resolvedTheme === 'dark' ? 'vs-dark' : 'vs'}
+                    />
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="paneBody">
-              <FileTree
-                tree={tree}
-                selectedId={selectedId}
-                expanded={expanded}
-                language={language}
-                onToggleFolder={onToggleFolder}
-                onSelect={onSelect}
+            ) : null}
+
+            {showPreview ? (
+              <div className="paneCard" style={{ flex: 1 }}>
+                <div className="paneHeader">
+                  <div className="paneTitle">{t('pane.preview')}</div>
+                  <div className="subtle">{currentDisplayName || ''}</div>
+                </div>
+                <div className="paneBody">
+                  <div className="preview">
+                    <PreviewPane markdown={content} />
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : (
+          <div className="shell">
+            {fileTreeOpen ? (
+              <div className="paneCard" style={{ width: leftWidth }}>
+                <div className="paneHeader">
+                  <div className="paneTitle">{t('pane.files')}</div>
+                  <div className="subtle" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {currentDisplayName}
+                  </div>
+                </div>
+                <div className="paneBody">
+                  <FileTree
+                    tree={tree}
+                    selectedId={selectedId}
+                    expanded={expanded}
+                    language={language}
+                    onToggleFolder={onToggleFolder}
+                    onSelect={onSelect}
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {fileTreeOpen ? (
+              <Splitter
+                onDelta={(dx) => {
+                  const next = clamp(leftWidth + dx, 200, 560);
+                  setLeftWidth(next);
+                }}
               />
-            </div>
-          </div>
+            ) : null}
 
-          <Splitter
-            onDelta={(dx) => {
-              const next = clamp(leftWidth + dx, 200, 560);
-              setLeftWidth(next);
-            }}
-          />
-
-          <div className="paneCard" style={{ width: centerWidth, flex: 1 }}>
-            <div className="paneHeader">
-              <div className="paneTitle">{t('pane.editor')}</div>
-            </div>
-            <div className="paneBody paneBodyCol">
-              <div className="editorToolbar" role="toolbar" aria-label={t('fmt.toolbar')}>
-                <IconButton
-                  icon={<span className="fmtTag">H1</span>}
-                  label={t('fmt.h1')}
-                  onClick={() => applyHeading(1)}
-                />
-                <IconButton
-                  icon={<span className="fmtTag">H2</span>}
-                  label={t('fmt.h2')}
-                  onClick={() => applyHeading(2)}
-                />
-                <div className="editorToolbarSep" />
-                <IconButton icon={<Bold size={18} />} label={t('fmt.bold')} onClick={() => applyWrap('**', '**')} />
-                <IconButton icon={<Italic size={18} />} label={t('fmt.italic')} onClick={() => applyWrap('*', '*')} />
-                <IconButton
-                  icon={<Underline size={18} />}
-                  label={t('fmt.underline')}
-                  onClick={() => applyWrap('<u>', '</u>')}
-                />
-                <IconButton
-                  icon={<Strikethrough size={18} />}
-                  label={t('fmt.strike')}
-                  onClick={() => applyWrap('~~', '~~')}
-                />
+            <div className="paneCard" style={{ width: centerWidth, flex: 1 }}>
+              <div className="paneHeader">
+                <div className="paneTitle">{t('pane.editor')}</div>
               </div>
-              <div className="editorWrap">
-                <EditorPane
-                  value={content}
-                  onChange={onChangeContent}
-                  onEditorMount={setEditor}
-                  theme={resolvedTheme === 'dark' ? 'vs-dark' : 'vs'}
-                />
+              <div className="paneBody paneBodyCol">
+                <div className="editorToolbar" role="toolbar" aria-label={t('fmt.toolbar')}>
+                  <IconButton
+                    icon={<span className="fmtTag">H1</span>}
+                    label={t('fmt.h1')}
+                    onClick={() => applyHeading(1)}
+                  />
+                  <IconButton
+                    icon={<span className="fmtTag">H2</span>}
+                    label={t('fmt.h2')}
+                    onClick={() => applyHeading(2)}
+                  />
+                  <div className="editorToolbarSep" />
+                  <IconButton icon={<Bold size={18} />} label={t('fmt.bold')} onClick={() => applyWrap('**', '**')} />
+                  <IconButton icon={<Italic size={18} />} label={t('fmt.italic')} onClick={() => applyWrap('*', '*')} />
+                  <IconButton
+                    icon={<Underline size={18} />}
+                    label={t('fmt.underline')}
+                    onClick={() => applyWrap('<u>', '</u>')}
+                  />
+                  <IconButton
+                    icon={<Strikethrough size={18} />}
+                    label={t('fmt.strike')}
+                    onClick={() => applyWrap('~~', '~~')}
+                  />
+                </div>
+                <div className="editorWrap">
+                  <EditorPane
+                    value={content}
+                    onChange={onChangeContent}
+                    onEditorMount={setEditor}
+                    theme={resolvedTheme === 'dark' ? 'vs-dark' : 'vs'}
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          <Splitter
-            onDelta={(dx) => {
-              const next = clamp(rightWidth - dx, 280, 980);
-              setRightWidth(next);
-            }}
-          />
+            {previewOpen ? (
+              <Splitter
+                onDelta={(dx) => {
+                  const next = clamp(rightWidth - dx, 280, 980);
+                  setRightWidth(next);
+                }}
+              />
+            ) : null}
 
-          <div className="paneCard" style={{ width: rightWidth }}>
-            <div className="paneHeader">
-              <div className="paneTitle">{t('pane.preview')}</div>
-              <div className="subtle">{currentDisplayName || ''}</div>
-            </div>
-            <div className="paneBody">
-              <div className="preview">
-                <PreviewPane markdown={content} />
+            {previewOpen ? (
+              <div className="paneCard" style={{ width: rightWidth }}>
+                <div className="paneHeader">
+                  <div className="paneTitle">{t('pane.preview')}</div>
+                  <div className="subtle">{currentDisplayName || ''}</div>
+                </div>
+                <div className="paneBody">
+                  <div className="preview">
+                    <PreviewPane markdown={content} />
+                  </div>
+                </div>
               </div>
-            </div>
+            ) : null}
           </div>
-        </div>
+        )}
 
         <div className="statusBar">
           <div className="statusBarLeft">{t('status.charCount', { count: String(charCount) })}</div>
         </div>
       </div>
+
+      {compactMode && fileTreeOpen ? (
+        <>
+          <div className="drawerBackdrop" onClick={() => setFileTreeOpen(false)} />
+          <div className="drawerPanel" role="dialog" aria-label={t('pane.files')}>
+            <div className="paneCard" style={{ width: '100%', height: '100%' }}>
+              <div className="paneHeader">
+                <div className="paneTitle">{t('pane.files')}</div>
+                <div className="subtle" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {currentDisplayName}
+                </div>
+              </div>
+              <div className="paneBody">
+                <FileTree
+                  tree={tree}
+                  selectedId={selectedId}
+                  expanded={expanded}
+                  language={language}
+                  onToggleFolder={onToggleFolder}
+                  onSelect={onSelect}
+                />
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
 
       {showSettings && (
         <SettingsModal

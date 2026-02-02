@@ -70,6 +70,26 @@ html[data-theme='dark'] .appRoot {
   min-height: 0;
 }
 
+.compactShell {
+  flex-direction: column;
+}
+
+.drawerBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  z-index: 80;
+}
+
+.drawerPanel {
+  position: fixed;
+  top: 56px;
+  bottom: 10px;
+  left: 10px;
+  width: min(360px, 88vw);
+  z-index: 90;
+}
+
 .statusBar {
   height: 22px;
   display: flex;

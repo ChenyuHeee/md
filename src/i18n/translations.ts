@@ -47,6 +47,10 @@ export type I18nKey =
   | 'theme.dark'
   | 'lang.zh'
   | 'lang.en'
+  | 'ui.toggleFileTree'
+  | 'ui.togglePreview'
+  | 'ui.showPreview'
+  | 'ui.showEditor'
   | 'fmt.toolbar'
   | 'fmt.h1'
   | 'fmt.h2'
@@ -104,6 +108,10 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'theme.dark': '深色',
     'lang.zh': '中文',
     'lang.en': 'English',
+    'ui.toggleFileTree': '文件列表',
+    'ui.togglePreview': '预览面板',
+    'ui.showPreview': '切换到预览',
+    'ui.showEditor': '切换到编辑',
     'fmt.toolbar': '样式工具栏',
     'fmt.h1': '一级标题',
     'fmt.h2': '二级标题',
@@ -160,6 +168,10 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'theme.dark': 'Dark',
     'lang.zh': '中文',
     'lang.en': 'English',
+    'ui.toggleFileTree': 'Files',
+    'ui.togglePreview': 'Preview panel',
+    'ui.showPreview': 'Switch to preview',
+    'ui.showEditor': 'Switch to editor',
     'fmt.toolbar': 'Formatting toolbar',
     'fmt.h1': 'Heading 1',
     'fmt.h2': 'Heading 2',
