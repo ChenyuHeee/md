@@ -5,6 +5,7 @@ import { useI18n } from '../i18n/useI18n';
 import type { FileNode } from '../types/models';
 import type { TreeState } from '../storage/tree';
 import { listChildren } from '../storage/tree';
+import { stripFileExtensionForDisplay } from '../utils/filename';
 
 export function FileTree(props: {
   tree: TreeState;
@@ -46,6 +47,7 @@ export function FileTree(props: {
         const selected = props.selectedId === node.id;
         const isFolder = node.type === 'folder';
         const expanded = isFolder && props.expanded.has(node.id);
+        const displayName = node.type === 'file' ? stripFileExtensionForDisplay(node.name) : node.name;
         return (
           <div
             key={node.id}
@@ -55,7 +57,7 @@ export function FileTree(props: {
             onDoubleClick={() => {
               if (isFolder) props.onToggleFolder(node.id);
             }}
-            title={node.name}
+            title={displayName}
           >
             <span className="treeIcon">
               {isFolder ? (
@@ -69,7 +71,7 @@ export function FileTree(props: {
               )}
             </span>
             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {node.name}
+              {displayName}
             </span>
           </div>
         );

@@ -57,12 +57,27 @@ html[data-theme='dark'] .appRoot {
   flex: 1;
   min-height: 0;
   padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .shell {
   height: 100%;
   display: flex;
   gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+.statusBar {
+  height: 26px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  color: var(--text-2);
+  font-size: 12px;
+  user-select: none;
 }
 
 .paneCard {

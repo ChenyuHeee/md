@@ -3,6 +3,7 @@ export type Language = 'zh-CN' | 'en';
 export type I18nKey =
   | 'app.name'
   | 'status.localOnly'
+  | 'status.charCount'
   | 'fileTree.error'
   | 'default.newFolderName'
   | 'toolbar.newFile'
@@ -51,6 +52,7 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
   'zh-CN': {
     'app.name': '墨档',
     'status.localOnly': '仅本地存储',
+    'status.charCount': '字数：{count}',
     'fileTree.error': '工作区损坏',
     'default.newFolderName': '新建文件夹',
     'toolbar.newFile': '新建文件',
@@ -77,7 +79,7 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'dialog.move.cancel': '取消',
     'dialog.move.confirm': '移动',
     'dialog.move.todo': 'TODO：未来可支持拖拽移动。',
-    'prompt.newFile': '新建文件名（例如 note.md）',
+    'prompt.newFile': '新建文件名（例如 note）',
     'prompt.newFolder': '新建文件夹名',
     'prompt.rename': '重命名',
     'confirm.delete': '确定删除：{name}？（文件夹将递归删除）',
@@ -99,6 +101,7 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
   en: {
     'app.name': 'Modang',
     'status.localOnly': 'Local-only',
+    'status.charCount': 'Chars: {count}',
     'fileTree.error': 'Workspace error',
     'default.newFolderName': 'New Folder',
     'toolbar.newFile': 'New File',
@@ -125,7 +128,7 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'dialog.move.cancel': 'Cancel',
     'dialog.move.confirm': 'Move',
     'dialog.move.todo': 'TODO: Drag & drop move.',
-    'prompt.newFile': 'New file name (e.g., note.md)',
+    'prompt.newFile': 'New file name (e.g., note)',
     'prompt.newFolder': 'New folder name',
     'prompt.rename': 'Rename',
     'confirm.delete': 'Delete: {name}? (Folders will be deleted recursively)',

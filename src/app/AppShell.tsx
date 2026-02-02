@@ -38,6 +38,7 @@ import { useTheme } from './useTheme';
 import { deleteFileContent } from '../storage/db';
 import { useI18n } from '../i18n/useI18n';
 import type { Language } from '../i18n/translations';
+import { stripFileExtensionForDisplay } from '../utils/filename';
 import {
   buildExportHtmlDocument,
   openPrintWindow,
@@ -99,6 +100,18 @@ export function AppShell() {
   const [currentFileId, setCurrentFileId] = useState<string | null>(null);
   const [content, setContent] = useState('');
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+
+  const currentDisplayName = useMemo(() => {
+    if (!tree || !currentFileId) return '';
+    const node = tree.nodes[currentFileId];
+    if (!node || node.type !== 'file') return '';
+    return stripFileExtensionForDisplay(node.name);
+  }, [currentFileId, tree]);
+
+  const charCount = useMemo(() => {
+    const withoutWhitespace = (content ?? '').replace(/\s/g, '');
+    return Array.from(withoutWhitespace).length;
+  }, [content]);
 
   const [showSettings, setShowSettings] = useState(false);
   const [showMove, setShowMove] = useState(false);
@@ -227,7 +240,7 @@ export function AppShell() {
   const doNewFile = useCallback(async () => {
     const treeState = requireTree();
     const parentId = resolveParentFolderId(treeState, selectedId);
-    const name = prompt(t('prompt.newFile'), 'untitled.md');
+    const name = prompt(t('prompt.newFile'), 'untitled');
     if (!name) return;
 
     const { tree: nextTree, id } = createFile(treeState, parentId, name);
@@ -259,7 +272,8 @@ export function AppShell() {
     const node = treeState.nodes[id];
     if (!node) return;
 
-    const nextName = prompt(t('prompt.rename'), node.name);
+    const defaultName = node.type === 'file' ? stripFileExtensionForDisplay(node.name) : node.name;
+    const nextName = prompt(t('prompt.rename'), defaultName);
     if (!nextName || nextName === node.name) return;
 
     const nextTree = renameNode(treeState, id, nextName);
@@ -274,7 +288,8 @@ export function AppShell() {
     if (!node) return;
     if (!node.parentId) return;
 
-    const ok = confirm(t('confirm.delete', { name: node.name }));
+    const displayName = node.type === 'file' ? stripFileExtensionForDisplay(node.name) : node.name;
+    const ok = confirm(t('confirm.delete', { name: displayName }));
     if (!ok) return;
 
     const fileIdsToDelete = collectSubtreeFileIds(treeState, id);
@@ -334,14 +349,14 @@ export function AppShell() {
     const locale = language === 'en' ? 'en-US' : 'zh-CN';
     const exportedAt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(now);
 
-    const fallbackTitle = baseName.toLowerCase().endsWith('.md') ? baseName.replace(/\.md$/i, '') : baseName;
+    const fallbackTitle = stripFileExtensionForDisplay(baseName);
     const docTitle = pickDocTitle(content, fallbackTitle);
 
     const headerHtml = exportIncludeHeader
       ? `<header class="exportHeader">
           <div class="exportHeaderTitle">${escapeHtml(docTitle)}</div>
           <div class="exportHeaderMeta">
-            <div class="exportHeaderMetaRow"><span class="exportHeaderKey">${escapeHtml(t('export.header.file'))}</span><span class="exportHeaderVal">${escapeHtml(baseName)}</span></div>
+            <div class="exportHeaderMetaRow"><span class="exportHeaderKey">${escapeHtml(t('export.header.file'))}</span><span class="exportHeaderVal">${escapeHtml(stripFileExtensionForDisplay(baseName))}</span></div>
             <div class="exportHeaderMetaRow"><span class="exportHeaderKey">${escapeHtml(t('export.header.exportedAt'))}</span><span class="exportHeaderVal">${escapeHtml(exportedAt)}</span></div>
           </div>
         </header>`
@@ -366,14 +381,14 @@ export function AppShell() {
     const locale = language === 'en' ? 'en-US' : 'zh-CN';
     const exportedAt = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(now);
 
-    const fallbackTitle = baseName.toLowerCase().endsWith('.md') ? baseName.replace(/\.md$/i, '') : baseName;
+    const fallbackTitle = stripFileExtensionForDisplay(baseName);
     const docTitle = pickDocTitle(content, fallbackTitle);
 
     const headerHtml = exportIncludeHeader
       ? `<header class="exportHeader">
           <div class="exportHeaderTitle">${escapeHtml(docTitle)}</div>
           <div class="exportHeaderMeta">
-            <div class="exportHeaderMetaRow"><span class="exportHeaderKey">${escapeHtml(t('export.header.file'))}</span><span class="exportHeaderVal">${escapeHtml(baseName)}</span></div>
+            <div class="exportHeaderMetaRow"><span class="exportHeaderKey">${escapeHtml(t('export.header.file'))}</span><span class="exportHeaderVal">${escapeHtml(stripFileExtensionForDisplay(baseName))}</span></div>
             <div class="exportHeaderMetaRow"><span class="exportHeaderKey">${escapeHtml(t('export.header.exportedAt'))}</span><span class="exportHeaderVal">${escapeHtml(exportedAt)}</span></div>
           </div>
         </header>`
@@ -523,7 +538,7 @@ export function AppShell() {
             <div className="paneHeader">
               <div className="paneTitle">{t('pane.files')}</div>
               <div className="subtle" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {currentFileId && tree.nodes[currentFileId]?.name ? tree.nodes[currentFileId]!.name : ''}
+                {currentDisplayName}
               </div>
             </div>
             <div className="paneBody">
@@ -568,7 +583,7 @@ export function AppShell() {
           <div className="paneCard" style={{ width: rightWidth }}>
             <div className="paneHeader">
               <div className="paneTitle">{t('pane.preview')}</div>
-              <div className="subtle">{resolvedTheme === 'dark' ? t('theme.dark') : t('theme.light')}</div>
+              <div className="subtle">{currentDisplayName || ''}</div>
             </div>
             <div className="paneBody">
               <div className="preview">
@@ -576,6 +591,10 @@ export function AppShell() {
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="statusBar">
+          <div className="statusBarLeft">{t('status.charCount', { count: String(charCount) })}</div>
         </div>
       </div>
 
