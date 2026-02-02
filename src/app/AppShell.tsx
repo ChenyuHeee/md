@@ -548,7 +548,6 @@ export function AppShell() {
           <div className="paneCard" style={{ width: centerWidth, flex: 1 }}>
             <div className="paneHeader">
               <div className="paneTitle">{t('pane.editor')}</div>
-              <div className="subtle">{t('export.todo')}</div>
             </div>
             <div className="paneBody">
               <EditorPane

@@ -45,8 +45,7 @@ export type I18nKey =
   | 'theme.light'
   | 'theme.dark'
   | 'lang.zh'
-  | 'lang.en'
-  | 'export.todo';
+  | 'lang.en';
 
 export const translations: Record<Language, Record<I18nKey, string>> = {
   'zh-CN': {
@@ -96,7 +95,6 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'theme.dark': '深色',
     'lang.zh': '中文',
     'lang.en': 'English',
-    'export.todo': 'TODO：导出 HTML / PDF（待实现）',
   },
   en: {
     'app.name': 'Modang',
@@ -145,7 +143,6 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'theme.dark': 'Dark',
     'lang.zh': '中文',
     'lang.en': 'English',
-    'export.todo': 'TODO: Export HTML / PDF',
   },
 };
 
