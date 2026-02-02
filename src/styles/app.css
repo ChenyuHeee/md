@@ -10,6 +10,21 @@
     var(--bg);
 }
 
+html[data-theme='dark'] .appRoot {
+  background:
+    radial-gradient(
+      900px 520px at 20% 10%,
+      color-mix(in srgb, var(--accent) 6%, transparent),
+      transparent 68%
+    ),
+    radial-gradient(
+      700px 520px at 85% 15%,
+      color-mix(in srgb, var(--accent-2) 6%, transparent),
+      transparent 68%
+    ),
+    var(--bg);
+}
+
 .topbar {
   height: 52px;
   display: flex;
