@@ -14,7 +14,7 @@ import { EditorPane } from '../components/EditorPane';
 import { PreviewPane } from '../components/PreviewPane';
 import { SettingsModal } from '../components/SettingsModal';
 import { MoveDialog } from '../components/MoveDialog';
-import { Button, IconButton } from '../components/ui/Button';
+import { IconButton } from '../components/ui/Button';
 import type { Settings, ThemeMode } from '../types/models';
 import {
   bootstrapWorkspace,
@@ -492,12 +492,8 @@ export function AppShell() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Button size="sm" variant="secondary" onClick={doNewFile} leftIcon={<FilePlus2 size={16} />}>
-            {t('toolbar.newFile')}
-          </Button>
-          <Button size="sm" variant="secondary" onClick={doNewFolder} leftIcon={<FolderPlus size={16} />}>
-            {t('toolbar.newFolder')}
-          </Button>
+          <IconButton icon={<FilePlus2 size={18} />} label={t('toolbar.newFile')} onClick={doNewFile} />
+          <IconButton icon={<FolderPlus size={18} />} label={t('toolbar.newFolder')} onClick={doNewFolder} />
           <IconButton icon={<Pencil size={18} />} label={t('toolbar.rename')} onClick={doRename} />
           <IconButton
             icon={<Trash2 size={18} />}

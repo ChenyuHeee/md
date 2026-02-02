@@ -26,11 +26,11 @@ html[data-theme='dark'] .appRoot {
 }
 
 .topbar {
-  height: 52px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 14px;
+  padding: 0 10px;
 }
 
 .brand {
@@ -56,22 +56,22 @@ html[data-theme='dark'] .appRoot {
 .workspace {
   flex: 1;
   min-height: 0;
-  padding: 12px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .shell {
   height: 100%;
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex: 1;
   min-height: 0;
 }
 
 .statusBar {
-  height: 26px;
+  height: 22px;
   display: flex;
   align-items: center;
   padding: 0 6px;
@@ -92,11 +92,11 @@ html[data-theme='dark'] .appRoot {
 }
 
 .paneHeader {
-  height: 40px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 12px;
+  padding: 0 10px;
   border-bottom: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface-1) 88%, transparent);
 }
