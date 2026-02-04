@@ -32,6 +32,7 @@ export function SettingsModal(props: {
   return (
     <Modal
       title={t('dialog.settings.title')}
+      className="modal--settings"
       onClose={props.onClose}
       footer={
         <>

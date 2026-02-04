@@ -5,6 +5,7 @@ export function Modal(props: {
   children: React.ReactNode;
   footer: React.ReactNode;
   onClose: () => void;
+  className?: string;
 }) {
   return (
     <div
@@ -15,7 +16,7 @@ export function Modal(props: {
         if (e.target === e.currentTarget) props.onClose();
       }}
     >
-      <div className="modal">
+      <div className={props.className ? `modal ${props.className}` : 'modal'}>
         <header>{props.title}</header>
         <div className="content">{props.children}</div>
         <footer>{props.footer}</footer>
