@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FilePlus2,
   FolderPlus,
@@ -127,17 +127,27 @@ export function AppShell() {
   const [editor, setEditor] = useState<MonacoEditor.IStandaloneCodeEditor | null>(null);
   const [cursorLine, setCursorLine] = useState<number>(1);
 
+  const pendingFocusLineRef = useRef<number | null>(null);
+
   const focusEditorLine = useCallback(
     (line: number) => {
+      pendingFocusLineRef.current = line;
       if (!editor) return;
-      const model = editor.getModel();
-      if (!model) return;
 
-      const maxLine = model.getLineCount();
-      const safeLine = Math.max(1, Math.min(line, maxLine));
-      editor.setPosition({ lineNumber: safeLine, column: 1 });
-      editor.revealLineInCenterIfOutsideViewport(safeLine);
-      editor.focus();
+      try {
+        const model = editor.getModel();
+        if (!model) return;
+
+        const maxLine = model.getLineCount();
+        const safeLine = Math.max(1, Math.min(line, maxLine));
+
+        pendingFocusLineRef.current = null;
+        editor.setPosition({ lineNumber: safeLine, column: 1 });
+        editor.revealLineInCenterIfOutsideViewport(safeLine);
+        editor.focus();
+      } catch {
+        // ignore
+      }
     },
     [editor],
   );
@@ -172,6 +182,14 @@ export function AppShell() {
     return !window.matchMedia('(orientation: portrait)').matches;
   });
   const [mobileMain, setMobileMain] = useState<'editor' | 'preview'>('editor');
+
+  useEffect(() => {
+    const showEditor = !isPortrait || mobileMain === 'editor';
+    if (!showEditor) return;
+    const line = pendingFocusLineRef.current;
+    if (line == null) return;
+    focusEditorLine(line);
+  }, [focusEditorLine, isPortrait, mobileMain]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
