@@ -48,22 +48,6 @@ export function FileTree(props: {
       className="fileTree"
       ref={wrapRef}
       tabIndex={0}
-      onKeyDown={(e) => {
-        const id = props.selectedId;
-        if (!id) return;
-
-        if (e.key === 'Enter') {
-          e.preventDefault();
-          props.onRequestRename?.(id);
-          return;
-        }
-
-        const isDeleteKey = e.key === 'Backspace' || e.key === 'Delete';
-        if (isDeleteKey && e.metaKey) {
-          e.preventDefault();
-          props.onRequestDelete?.(id);
-        }
-      }}
     >
 
       {rows.map((row) => {

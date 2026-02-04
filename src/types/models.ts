@@ -31,6 +31,7 @@ export interface Settings {
   themeMode: ThemeMode;
   language?: Language;
   lastOpenFileId?: string;
+  shortcuts?: Record<string, string>;
   preview?: {
     ignoreFrontmatter?: boolean;
   };

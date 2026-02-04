@@ -5,6 +5,7 @@ import {
   FolderInput,
   FolderPlus,
   Pencil,
+  Save,
   Trash2,
   MoveRight,
   Download,
@@ -60,6 +61,8 @@ import {
   renderMarkdownHtmlWithInlinedAssets,
 } from '../export/export';
 import type { editor as MonacoEditor } from 'monaco-editor';
+import { SHORTCUT_DEFS, getDefaultShortcutBinding, type ShortcutActionId } from '../shortcuts/definitions';
+import { matchShortcut } from '../shortcuts/keys';
 
 function debounce<T extends (...args: any[]) => void>(fn: T, waitMs: number) {
   let t: number | null = null;
@@ -138,6 +141,7 @@ export function AppShell() {
   const { t } = useI18n(language);
   const exportIncludeHeader = settings.export?.includeHeader ?? true;
   const ignoreFrontmatter = settings.preview?.ignoreFrontmatter ?? true;
+  const shortcuts = settings.shortcuts ?? {};
 
   const [tree, setTree] = useState<TreeState | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -170,8 +174,10 @@ function isSupportedImportFile(name: string): boolean {
 
       if (!handle.createWritable) return;
 
-      const perm = handle.queryPermission ? await handle.queryPermission({ mode: 'readwrite' }) : 'prompt';
-      if (perm !== 'granted') return;
+      if (handle.queryPermission) {
+        const perm = await handle.queryPermission({ mode: 'readwrite' });
+        if (perm !== 'granted') return;
+      }
 
       const writable = await handle.createWritable();
       await writable.write(nextContent);
@@ -873,6 +879,50 @@ function isSupportedImportFile(name: string): boolean {
     localFileInputRef.current?.click();
   }, [importLocalFiles]);
 
+  const doSaveToLocal = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+    if (!tree || !currentFileId) return;
+
+    const node = tree.nodes[currentFileId];
+    const suggestedName = ensureExtension(node?.name || 'note.md', '.md');
+
+    const w = window as unknown as {
+      showSaveFilePicker?: (opts?: any) => Promise<any>;
+    };
+
+    if (!w.showSaveFilePicker) {
+      // Fallback: can't get a writable handle, but we can still download a snapshot.
+      downloadText(suggestedName, content, 'text/markdown;charset=utf-8');
+      return;
+    }
+
+    try {
+      const handle = await w.showSaveFilePicker({
+        suggestedName,
+        excludeAcceptAllOption: false,
+        types: [
+          {
+            description: 'Markdown',
+            accept: {
+              'text/markdown': ['.md', '.markdown'],
+              'text/plain': ['.txt'],
+            },
+          },
+        ],
+      });
+
+      if (handle?.createWritable) {
+        const writable = await handle.createWritable();
+        await writable.write(content);
+        await writable.close();
+      }
+
+      await putLocalFileHandle(currentFileId, handle);
+    } catch (e) {
+      if ((e as Error)?.name === 'AbortError') return;
+    }
+  }, [content, currentFileId, tree]);
+
   const doOpenLocalFolder = useCallback(async () => {
     if (typeof window === 'undefined') return;
 
@@ -1203,6 +1253,123 @@ function isSupportedImportFile(name: string): boolean {
     [setSettings],
   );
 
+  const onChangeShortcuts = useCallback(
+    (nextShortcuts: Record<string, string>) => {
+      const next = loadSettings();
+      next.shortcuts = { ...(nextShortcuts ?? {}) };
+      saveSettings(next);
+      setSettings(next);
+    },
+    [setSettings],
+  );
+
+  useEffect(() => {
+    const isEditableTarget = (target: EventTarget | null) => {
+      const el = target as HTMLElement | null;
+      if (!el) return false;
+      const tag = (el.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+      if ((el as any).isContentEditable) return true;
+      return false;
+    };
+
+    const inFileTreeScope = () => {
+      const active = document.activeElement as HTMLElement | null;
+      if (!active) return false;
+      return Boolean(active.closest('.fileTree'));
+    };
+
+    const getBinding = (id: ShortcutActionId): string => {
+      const v = shortcuts[id];
+      if (typeof v === 'string') return v;
+      return getDefaultShortcutBinding(id);
+    };
+
+    const handler = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
+      if (e.isComposing) return;
+
+      // Avoid stealing plain typing from inputs; allow modifier shortcuts.
+      if (isEditableTarget(e.target) && !(e.metaKey || e.ctrlKey || e.altKey)) return;
+
+      for (const def of SHORTCUT_DEFS) {
+        const binding = getBinding(def.id);
+        // Allow disabling by clearing the binding.
+        if (!binding) continue;
+
+        if (!matchShortcut(binding, e)) continue;
+
+        if (def.scope === 'fileTree' && !inFileTreeScope()) continue;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        switch (def.id) {
+          case 'ui.toggleFileTree':
+            setFileTreeOpen((v) => !v);
+            return;
+          case 'ui.togglePreview':
+            if (isPortrait) setMobileMain((v) => (v === 'editor' ? 'preview' : 'editor'));
+            else setPreviewOpen((v) => !v);
+            return;
+          case 'ui.showSettings':
+            setShowSettings(true);
+            return;
+          case 'file.new':
+            void doNewFile();
+            return;
+          case 'folder.new':
+            doNewFolder();
+            return;
+          case 'node.rename':
+            doRename();
+            return;
+          case 'node.delete':
+            doDelete();
+            return;
+          case 'node.move':
+            if (selectedId) setMoveTargetId(selectedId);
+            return;
+          case 'file.openLocal':
+            void doOpenLocal();
+            return;
+          case 'file.importFolder':
+            void doOpenLocalFolder();
+            return;
+          case 'file.saveToLocal':
+            void doSaveToLocal();
+            return;
+          case 'export.md':
+            doExportMarkdown();
+            return;
+          case 'export.html':
+            void doExportHtml();
+            return;
+          case 'export.pdf':
+            void doExportPdf();
+            return;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handler, { capture: true });
+    return () => window.removeEventListener('keydown', handler, true);
+  }, [
+    doDelete,
+    doExportHtml,
+    doExportMarkdown,
+    doExportPdf,
+    doNewFile,
+    doNewFolder,
+    doOpenLocal,
+    doOpenLocalFolder,
+    doRename,
+    doSaveToLocal,
+    isPortrait,
+    shortcuts,
+    selectedId,
+  ]);
+
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
   if (!booted || !tree) {
@@ -1273,6 +1440,7 @@ function isSupportedImportFile(name: string): boolean {
           <IconButton icon={<FolderPlus size={18} />} label={t('toolbar.newFolder')} onClick={doNewFolder} />
           <IconButton icon={<FolderOpen size={18} />} label={t('toolbar.openLocal')} onClick={doOpenLocal} />
           <IconButton icon={<FolderInput size={18} />} label={t('toolbar.openLocalFolder')} onClick={doOpenLocalFolder} />
+          <IconButton icon={<Save size={18} />} label={t('toolbar.saveToLocal')} onClick={doSaveToLocal} />
           <IconButton icon={<Pencil size={18} />} label={t('toolbar.rename')} onClick={doRename} />
           <IconButton
             icon={<Trash2 size={18} />}
@@ -1646,9 +1814,11 @@ function isSupportedImportFile(name: string): boolean {
           themeMode={themeMode}
           language={language}
           ignoreFrontmatter={ignoreFrontmatter}
+          shortcuts={shortcuts}
           onChangeTheme={onChangeTheme}
           onChangeLanguage={onChangeLanguage}
           onChangeIgnoreFrontmatter={onChangeIgnoreFrontmatter}
+          onChangeShortcuts={onChangeShortcuts}
           onClose={() => setShowSettings(false)}
         />
       )}

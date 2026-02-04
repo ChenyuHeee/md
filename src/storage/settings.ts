@@ -4,6 +4,7 @@ import type { Settings, ThemeMode } from '../types/models';
 const DEFAULT_SETTINGS: Settings = {
   themeMode: 'system',
   language: 'zh-CN',
+  shortcuts: {},
   preview: {
     ignoreFrontmatter: true,
   },
@@ -26,6 +27,7 @@ export function loadSettings(): Settings {
     return {
       ...DEFAULT_SETTINGS,
       ...parsed,
+      shortcuts: { ...(DEFAULT_SETTINGS.shortcuts ?? {}), ...(parsed.shortcuts ?? {}) },
       preview: { ...DEFAULT_SETTINGS.preview, ...(parsed.preview ?? {}) },
       export: { ...DEFAULT_SETTINGS.export, ...(parsed.export ?? {}) },
       ui: { ...DEFAULT_SETTINGS.ui, ...(parsed.ui ?? {}) },

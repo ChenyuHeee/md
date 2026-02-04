@@ -10,6 +10,7 @@ export type I18nKey =
   | 'toolbar.newFolder'
   | 'toolbar.openLocal'
   | 'toolbar.openLocalFolder'
+  | 'toolbar.saveToLocal'
   | 'toolbar.rename'
   | 'toolbar.delete'
   | 'toolbar.move'
@@ -23,6 +24,24 @@ export type I18nKey =
   | 'dialog.settings.language'
   | 'dialog.settings.theme'
   | 'dialog.settings.ignoreFrontmatter'
+  | 'dialog.settings.shortcuts'
+  | 'dialog.settings.shortcutsTip'
+  | 'dialog.settings.shortcutsReset'
+  | 'dialog.settings.shortcutsClear'
+  | 'shortcut.toggleFileTree'
+  | 'shortcut.togglePreview'
+  | 'shortcut.showSettings'
+  | 'shortcut.newFile'
+  | 'shortcut.newFolder'
+  | 'shortcut.rename'
+  | 'shortcut.delete'
+  | 'shortcut.move'
+  | 'shortcut.openLocal'
+  | 'shortcut.importFolder'
+  | 'shortcut.saveToLocal'
+  | 'shortcut.exportMd'
+  | 'shortcut.exportHtml'
+  | 'shortcut.exportPdf'
   | 'dialog.settings.privacyTitle'
   | 'dialog.settings.privacyBody'
   | 'dialog.settings.cancel'
@@ -78,6 +97,7 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'toolbar.newFolder': '新建文件夹',
     'toolbar.openLocal': '打开本地文档',
     'toolbar.openLocalFolder': '导入文件夹',
+    'toolbar.saveToLocal': '保存到本地文件',
     'toolbar.rename': '重命名',
     'toolbar.delete': '删除',
     'toolbar.move': '移动到…',
@@ -91,6 +111,24 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'dialog.settings.language': '语言',
     'dialog.settings.theme': '主题',
     'dialog.settings.ignoreFrontmatter': '预览时忽略 Frontmatter（YAML）',
+    'dialog.settings.shortcuts': '快捷键',
+    'dialog.settings.shortcutsTip': '点击输入框后按下组合键进行录制；留空表示禁用该动作。',
+    'dialog.settings.shortcutsReset': '重置为默认',
+    'dialog.settings.shortcutsClear': '清空',
+    'shortcut.toggleFileTree': '切换文件列表',
+    'shortcut.togglePreview': '切换预览',
+    'shortcut.showSettings': '打开设置',
+    'shortcut.newFile': '新建文件',
+    'shortcut.newFolder': '新建文件夹',
+    'shortcut.rename': '重命名（文件树）',
+    'shortcut.delete': '删除（文件树）',
+    'shortcut.move': '移动（文件树）',
+    'shortcut.openLocal': '打开本地文档',
+    'shortcut.importFolder': '导入文件夹',
+    'shortcut.saveToLocal': '保存到本地文件',
+    'shortcut.exportMd': '导出 Markdown',
+    'shortcut.exportHtml': '导出 HTML',
+    'shortcut.exportPdf': '导出 PDF',
     'dialog.settings.privacyTitle': '隐私',
     'dialog.settings.privacyBody':
       '墨档是纯静态应用，不包含任何自建后端；所有数据仅保存在你的浏览器本地（localStorage + IndexedDB）。',
@@ -146,6 +184,7 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'toolbar.newFolder': 'New Folder',
     'toolbar.openLocal': 'Open local file',
     'toolbar.openLocalFolder': 'Import folder',
+    'toolbar.saveToLocal': 'Save to local file',
     'toolbar.rename': 'Rename',
     'toolbar.delete': 'Delete',
     'toolbar.move': 'Move to…',
@@ -159,6 +198,24 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'dialog.settings.language': 'Language',
     'dialog.settings.theme': 'Theme',
     'dialog.settings.ignoreFrontmatter': 'Ignore frontmatter (YAML) in preview',
+    'dialog.settings.shortcuts': 'Shortcuts',
+    'dialog.settings.shortcutsTip': 'Click an input, then press a key combo to record. Empty means disabled.',
+    'dialog.settings.shortcutsReset': 'Reset to defaults',
+    'dialog.settings.shortcutsClear': 'Clear',
+    'shortcut.toggleFileTree': 'Toggle file tree',
+    'shortcut.togglePreview': 'Toggle preview',
+    'shortcut.showSettings': 'Open settings',
+    'shortcut.newFile': 'New file',
+    'shortcut.newFolder': 'New folder',
+    'shortcut.rename': 'Rename (file tree)',
+    'shortcut.delete': 'Delete (file tree)',
+    'shortcut.move': 'Move (file tree)',
+    'shortcut.openLocal': 'Open local file',
+    'shortcut.importFolder': 'Import folder',
+    'shortcut.saveToLocal': 'Save to local file',
+    'shortcut.exportMd': 'Export Markdown',
+    'shortcut.exportHtml': 'Export HTML',
+    'shortcut.exportPdf': 'Export PDF',
     'dialog.settings.privacyTitle': 'Privacy',
     'dialog.settings.privacyBody':
       'Modang is a purely static app with no custom backend. All data stays in your browser (localStorage + IndexedDB).',
