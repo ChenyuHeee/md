@@ -262,6 +262,10 @@ html[data-theme='dark'] .appRoot {
   background: var(--surface-2);
   box-shadow: var(--shadow-md);
   backdrop-filter: blur(14px);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 36px);
+  overflow: hidden;
 }
 
 .modal header {
@@ -275,6 +279,42 @@ html[data-theme='dark'] .appRoot {
   padding: 14px;
   display: grid;
   gap: 12px;
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.settingsTabs {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-1) 86%, transparent);
+}
+
+.settingsTab {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: 12px;
+  user-select: none;
+}
+
+.settingsTab:hover {
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  color: var(--text-1);
+}
+
+.settingsTab--active {
+  background: color-mix(in srgb, var(--surface-2) 92%, transparent);
+  color: var(--text-1);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--border) 85%, transparent) inset;
 }
 
 .modal .row {

@@ -23,6 +23,9 @@ export type I18nKey =
   | 'dialog.settings.title'
   | 'dialog.settings.language'
   | 'dialog.settings.theme'
+  | 'dialog.settings.sectionGeneral'
+  | 'dialog.settings.sectionShortcuts'
+  | 'dialog.settings.sectionPrivacy'
   | 'dialog.settings.ignoreFrontmatter'
   | 'dialog.settings.shortcuts'
   | 'dialog.settings.shortcutsTip'
@@ -110,6 +113,9 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'dialog.settings.title': '设置',
     'dialog.settings.language': '语言',
     'dialog.settings.theme': '主题',
+    'dialog.settings.sectionGeneral': '通用',
+    'dialog.settings.sectionShortcuts': '快捷键',
+    'dialog.settings.sectionPrivacy': '隐私',
     'dialog.settings.ignoreFrontmatter': '预览时忽略 Frontmatter（YAML）',
     'dialog.settings.shortcuts': '快捷键',
     'dialog.settings.shortcutsTip': '点击输入框后按下组合键进行录制；留空表示禁用该动作。',
@@ -197,6 +203,9 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'dialog.settings.title': 'Settings',
     'dialog.settings.language': 'Language',
     'dialog.settings.theme': 'Theme',
+    'dialog.settings.sectionGeneral': 'General',
+    'dialog.settings.sectionShortcuts': 'Shortcuts',
+    'dialog.settings.sectionPrivacy': 'Privacy',
     'dialog.settings.ignoreFrontmatter': 'Ignore frontmatter (YAML) in preview',
     'dialog.settings.shortcuts': 'Shortcuts',
     'dialog.settings.shortcutsTip': 'Click an input, then press a key combo to record. Empty means disabled.',
