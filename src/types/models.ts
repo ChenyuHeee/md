@@ -31,6 +31,9 @@ export interface Settings {
   themeMode: ThemeMode;
   language?: Language;
   lastOpenFileId?: string;
+  preview?: {
+    ignoreFrontmatter?: boolean;
+  };
   export?: {
     includeHeader?: boolean;
   };

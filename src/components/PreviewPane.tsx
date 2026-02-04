@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createMarkdownIt } from '../markdown/md';
+import { stripYamlFrontmatter } from '../markdown/frontmatter';
 import {
   makeMissingAssetDataUrl,
   parseAssetId,
@@ -11,6 +12,7 @@ export function PreviewPane(props: {
   markdown: string;
   activeLine?: number;
   onRequestFocusLine?: (line: number) => void;
+  ignoreFrontmatter?: boolean;
 }) {
   const md = useMemo(() => createMarkdownIt(), []);
   const [html, setHtml] = useState('');
@@ -18,8 +20,13 @@ export function PreviewPane(props: {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const activeElRef = useRef<HTMLElement | null>(null);
 
+  const { markdown, offsetLines } = useMemo(() => {
+    if (props.ignoreFrontmatter === false) return { markdown: props.markdown || '', offsetLines: 0 };
+    return stripYamlFrontmatter(props.markdown || '');
+  }, [props.ignoreFrontmatter, props.markdown]);
+
   useEffect(() => {
-    const rawHtml = md.render(props.markdown || '');
+    const rawHtml = md.render(markdown || '');
 
     let cancelled = false;
 
@@ -58,7 +65,7 @@ export function PreviewPane(props: {
     return () => {
       cancelled = true;
     };
-  }, [md, props.markdown]);
+  }, [md, markdown]);
 
   useEffect(() => {
     return () => {
@@ -68,7 +75,8 @@ export function PreviewPane(props: {
   }, []);
 
   useEffect(() => {
-    const line = props.activeLine;
+    const lineRaw = props.activeLine;
+    const line = lineRaw ? Math.max(1, lineRaw - offsetLines) : undefined;
     if (!line) return;
     const root = rootRef.current;
     if (!root) return;
@@ -100,7 +108,7 @@ export function PreviewPane(props: {
 
     // Scroll minimally to keep it visible.
     best.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }, [props.activeLine, html]);
+  }, [offsetLines, props.activeLine, html]);
 
   const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!props.onRequestFocusLine) return;
@@ -127,7 +135,7 @@ export function PreviewPane(props: {
     const line = raw ? Number.parseInt(raw, 10) : NaN;
     if (!Number.isFinite(line) || line <= 0) return;
 
-    props.onRequestFocusLine(line);
+    props.onRequestFocusLine(line + offsetLines);
   };
 
   return <div ref={rootRef} onClick={onClick} dangerouslySetInnerHTML={{ __html: html }} />;

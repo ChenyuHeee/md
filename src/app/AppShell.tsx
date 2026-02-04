@@ -137,6 +137,7 @@ export function AppShell() {
   const language = (settings.language ?? 'zh-CN') as Language;
   const { t } = useI18n(language);
   const exportIncludeHeader = settings.export?.includeHeader ?? true;
+  const ignoreFrontmatter = settings.preview?.ignoreFrontmatter ?? true;
 
   const [tree, setTree] = useState<TreeState | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -1192,6 +1193,16 @@ function isSupportedImportFile(name: string): boolean {
     [setSettings],
   );
 
+  const onChangeIgnoreFrontmatter = useCallback(
+    (v: boolean) => {
+      const next = loadSettings();
+      next.preview = { ...(next.preview ?? {}), ignoreFrontmatter: v };
+      saveSettings(next);
+      setSettings(next);
+    },
+    [setSettings],
+  );
+
   const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
 
   if (!booted || !tree) {
@@ -1405,6 +1416,7 @@ function isSupportedImportFile(name: string): boolean {
                       markdown={content}
                       activeLine={cursorLine}
                       onRequestFocusLine={focusEditorLine}
+                      ignoreFrontmatter={ignoreFrontmatter}
                     />
                   </div>
                 </div>
@@ -1518,6 +1530,7 @@ function isSupportedImportFile(name: string): boolean {
                       markdown={content}
                       activeLine={cursorLine}
                       onRequestFocusLine={focusEditorLine}
+                      ignoreFrontmatter={ignoreFrontmatter}
                     />
                   </div>
                 </div>
@@ -1632,8 +1645,10 @@ function isSupportedImportFile(name: string): boolean {
         <SettingsModal
           themeMode={themeMode}
           language={language}
+          ignoreFrontmatter={ignoreFrontmatter}
           onChangeTheme={onChangeTheme}
           onChangeLanguage={onChangeLanguage}
+          onChangeIgnoreFrontmatter={onChangeIgnoreFrontmatter}
           onClose={() => setShowSettings(false)}
         />
       )}

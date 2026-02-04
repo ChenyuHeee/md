@@ -22,6 +22,7 @@ export type I18nKey =
   | 'dialog.settings.title'
   | 'dialog.settings.language'
   | 'dialog.settings.theme'
+  | 'dialog.settings.ignoreFrontmatter'
   | 'dialog.settings.privacyTitle'
   | 'dialog.settings.privacyBody'
   | 'dialog.settings.cancel'
@@ -89,6 +90,7 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'dialog.settings.title': '设置',
     'dialog.settings.language': '语言',
     'dialog.settings.theme': '主题',
+    'dialog.settings.ignoreFrontmatter': '预览时忽略 Frontmatter（YAML）',
     'dialog.settings.privacyTitle': '隐私',
     'dialog.settings.privacyBody':
       '墨档是纯静态应用，不包含任何自建后端；所有数据仅保存在你的浏览器本地（localStorage + IndexedDB）。',
@@ -156,6 +158,7 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'dialog.settings.title': 'Settings',
     'dialog.settings.language': 'Language',
     'dialog.settings.theme': 'Theme',
+    'dialog.settings.ignoreFrontmatter': 'Ignore frontmatter (YAML) in preview',
     'dialog.settings.privacyTitle': 'Privacy',
     'dialog.settings.privacyBody':
       'Modang is a purely static app with no custom backend. All data stays in your browser (localStorage + IndexedDB).',

@@ -9,13 +9,16 @@ import { Select } from './ui/Select';
 export function SettingsModal(props: {
   themeMode: ThemeMode;
   language: Language;
+  ignoreFrontmatter: boolean;
   onChangeTheme: (mode: ThemeMode) => void;
   onChangeLanguage: (lang: Language) => void;
+  onChangeIgnoreFrontmatter: (v: boolean) => void;
   onClose: () => void;
 }) {
   const { t } = useI18n(props.language);
   const [mode, setMode] = useState<ThemeMode>(props.themeMode);
   const [lang, setLang] = useState<Language>(props.language);
+  const [ignoreFrontmatter, setIgnoreFrontmatter] = useState<boolean>(props.ignoreFrontmatter);
 
   return (
     <Modal
@@ -30,6 +33,7 @@ export function SettingsModal(props: {
             onClick={() => {
               props.onChangeTheme(mode);
               props.onChangeLanguage(lang);
+              props.onChangeIgnoreFrontmatter(ignoreFrontmatter);
               props.onClose();
             }}
           >
@@ -53,6 +57,17 @@ export function SettingsModal(props: {
           <option value="zh-CN">{t('lang.zh')}</option>
           <option value="en">{t('lang.en')}</option>
         </Select>
+      </div>
+
+      <div className="row" style={{ alignItems: 'center' }}>
+        <div className="subtle">{t('dialog.settings.ignoreFrontmatter')}</div>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            type="checkbox"
+            checked={ignoreFrontmatter}
+            onChange={(e) => setIgnoreFrontmatter(e.target.checked)}
+          />
+        </label>
       </div>
 
       <div className="subtle" style={{ lineHeight: 1.6 }}>
