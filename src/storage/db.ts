@@ -1,6 +1,13 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import type { Asset, FileContent } from '../types/models';
 
+type LocalFileHandleRecord = {
+  fileId: string;
+  // File System Access API (Chromium) supports structured-cloning handles into IndexedDB.
+  // Keep it as unknown to stay compatible on platforms without the type/runtime.
+  handle: unknown;
+};
+
 type ModangDBSchema = DBSchema & {
   fileContents: {
     key: string; // fileId
@@ -10,13 +17,17 @@ type ModangDBSchema = DBSchema & {
     key: string; // asset id
     value: Asset;
   };
+  localFileHandles: {
+    key: string; // fileId
+    value: LocalFileHandleRecord;
+  };
 };
 
 let dbPromise: ReturnType<typeof openDB<ModangDBSchema>> | null = null;
 
 export function getDb() {
   if (!dbPromise) {
-    dbPromise = openDB<ModangDBSchema>('modang-db', 1, {
+    dbPromise = openDB<ModangDBSchema>('modang-db', 2, {
       upgrade(db: IDBPDatabase<ModangDBSchema>) {
         if (!db.objectStoreNames.contains('fileContents')) {
           db.createObjectStore('fileContents', { keyPath: 'fileId' });
@@ -24,10 +35,29 @@ export function getDb() {
         if (!db.objectStoreNames.contains('assets')) {
           db.createObjectStore('assets', { keyPath: 'id' });
         }
+        if (!db.objectStoreNames.contains('localFileHandles')) {
+          db.createObjectStore('localFileHandles', { keyPath: 'fileId' });
+        }
       },
     });
   }
   return dbPromise;
+}
+
+export async function getLocalFileHandle(fileId: string): Promise<unknown | undefined> {
+  const db = await getDb();
+  const rec = await db.get('localFileHandles', fileId);
+  return rec?.handle;
+}
+
+export async function putLocalFileHandle(fileId: string, handle: unknown): Promise<void> {
+  const db = await getDb();
+  await db.put('localFileHandles', { fileId, handle });
+}
+
+export async function deleteLocalFileHandle(fileId: string): Promise<void> {
+  const db = await getDb();
+  await db.delete('localFileHandles', fileId);
 }
 
 export async function getFileContent(fileId: string): Promise<FileContent | undefined> {
@@ -62,5 +92,5 @@ export async function deleteAsset(assetId: string): Promise<void> {
 
 export async function clearAll(): Promise<void> {
   const db = await getDb();
-  await Promise.all([db.clear('fileContents'), db.clear('assets')]);
+  await Promise.all([db.clear('fileContents'), db.clear('assets'), db.clear('localFileHandles')]);
 }

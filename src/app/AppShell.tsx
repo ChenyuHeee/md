@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   FilePlus2,
+  FolderOpen,
+  FolderInput,
   FolderPlus,
   Pencil,
   Trash2,
@@ -48,7 +50,7 @@ import {
 } from '../storage/tree';
 import { loadSettings, saveSettings, setThemeMode } from '../storage/settings';
 import { useTheme } from './useTheme';
-import { deleteFileContent } from '../storage/db';
+import { deleteFileContent, getLocalFileHandle, putLocalFileHandle } from '../storage/db';
 import { useI18n } from '../i18n/useI18n';
 import type { Language } from '../i18n/translations';
 import { stripFileExtensionForDisplay } from '../utils/filename';
@@ -100,6 +102,24 @@ function ensureExtension(name: string, ext: string) {
   return `${name}${ext}`;
 }
 
+function ensureUniqueChildName(tree: TreeState, parentFolderId: string, desiredName: string): string {
+  const parent = tree.nodes[parentFolderId];
+  if (!parent || parent.type !== 'folder') return desiredName;
+  const siblings = parent.childrenIds.map((id) => tree.nodes[id]?.name).filter((v): v is string => Boolean(v));
+  const existing = new Set(siblings);
+  if (!existing.has(desiredName)) return desiredName;
+
+  const m = desiredName.match(/^(.*?)(\.[^.]*)?$/);
+  const base = m?.[1] ?? desiredName;
+  const ext = m?.[2] ?? '';
+
+  let n = 1;
+  while (true) {
+    const candidate = `${base} (${n++})${ext}`;
+    if (!existing.has(candidate)) return candidate;
+  }
+}
+
 export function AppShell() {
   const [isCompact, setIsCompact] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -128,6 +148,45 @@ export function AppShell() {
   const [cursorLine, setCursorLine] = useState<number>(1);
 
   const pendingFocusLineRef = useRef<number | null>(null);
+  const localFileInputRef = useRef<HTMLInputElement | null>(null);
+  const localFolderInputRef = useRef<HTMLInputElement | null>(null);
+
+function isSupportedImportFile(name: string): boolean {
+  const n = (name || '').toLowerCase();
+  return n.endsWith('.md') || n.endsWith('.markdown') || n.endsWith('.txt');
+}
+
+  const writeBackToDisk = useCallback(async (fileId: string, nextContent: string) => {
+    try {
+      const handleUnknown = await getLocalFileHandle(fileId);
+      if (!handleUnknown) return;
+
+      const handle = handleUnknown as {
+        queryPermission?: (opts?: { mode?: 'read' | 'readwrite' }) => Promise<PermissionState>;
+        requestPermission?: (opts?: { mode?: 'read' | 'readwrite' }) => Promise<PermissionState>;
+        createWritable?: () => Promise<{ write: (data: string) => Promise<void>; close: () => Promise<void> }>;
+      };
+
+      if (!handle.createWritable) return;
+
+      const perm = handle.queryPermission ? await handle.queryPermission({ mode: 'readwrite' }) : 'prompt';
+      if (perm !== 'granted') return;
+
+      const writable = await handle.createWritable();
+      await writable.write(nextContent);
+      await writable.close();
+    } catch {
+      // ignore (permission revoked, API unsupported, etc.)
+    }
+  }, []);
+
+  const debouncedWriteBack = useMemo(
+    () =>
+      debounce((fileId: string, nextContent: string) => {
+        void writeBackToDisk(fileId, nextContent);
+      }, 900),
+    [writeBackToDisk],
+  );
 
   const focusEditorLine = useCallback(
     (line: number) => {
@@ -332,8 +391,9 @@ export function AppShell() {
         saveFileText(fileId, nextContent).catch(() => {
           // TODO: surface error to UI
         });
+        debouncedWriteBack(fileId, nextContent);
       }, 450),
-    [],
+    [debouncedWriteBack],
   );
 
   const onChangeContent = useCallback(
@@ -629,6 +689,296 @@ export function AppShell() {
     return tree;
   };
 
+  const importLocalFiles = useCallback(
+    async (
+      files: Array<{ name: string; text: () => Promise<string>; handle?: unknown }>,
+      { openFirst = true }: { openFirst?: boolean } = {},
+    ) => {
+      const treeState0 = requireTree();
+      const parentId = resolveParentFolderId(treeState0, selectedId);
+
+      let nextTree = treeState0;
+      let firstFileId: string | null = null;
+
+      for (const f of files) {
+        const rawName = ensureExtension(f.name || 'untitled', '.md');
+        const name = ensureUniqueChildName(nextTree, parentId, rawName);
+        const { tree: createdTree, id } = createFile(nextTree, parentId, name);
+        nextTree = createdTree;
+
+        setTree(nextTree);
+        persistTree(nextTree);
+        setExpanded((prev) => new Set(prev).add(parentId));
+
+        const text = await f.text();
+        await saveFileText(id, text);
+        if (f.handle) {
+          await putLocalFileHandle(id, f.handle);
+        }
+        if (!firstFileId) firstFileId = id;
+      }
+
+      if (openFirst && firstFileId) {
+        if (isCompact) setFileTreeOpen(false);
+        if (isPortrait) setMobileMain('editor');
+        await openFile(firstFileId);
+      }
+    },
+    [isCompact, isPortrait, openFile, persistTree, selectedId, tree],
+  );
+
+  const importLocalFolder = useCallback(
+    async (
+      opts: {
+        rootFolderName: string;
+        files: Array<{ relativePath: string; text: () => Promise<string>; handle?: unknown }>;
+      },
+      { openFirst = true }: { openFirst?: boolean } = {},
+    ) => {
+      const treeState0 = requireTree();
+      const parentId = resolveParentFolderId(treeState0, selectedId);
+      const topName = ensureUniqueChildName(treeState0, parentId, opts.rootFolderName || 'Imported');
+
+      let nextTree = treeState0;
+      const createdFolders = new Set<string>();
+
+      const createdTop = createFolder(nextTree, parentId, topName);
+      nextTree = createdTop.tree;
+      const topFolderId = createdTop.id;
+      createdFolders.add(topFolderId);
+
+      const folderIdByPath = new Map<string, string>();
+      folderIdByPath.set('', topFolderId);
+
+      let firstFileId: string | null = null;
+
+      for (const f of opts.files) {
+        const rel = (f.relativePath || '').replace(/^\/+/, '');
+        if (!rel) continue;
+        const parts = rel.split('/').filter(Boolean);
+        if (parts.length === 0) continue;
+
+        const filename = parts[parts.length - 1] ?? 'untitled.md';
+        if (!isSupportedImportFile(filename)) continue;
+
+        let parentFolderPath = '';
+        let parentFolderId = topFolderId;
+        for (const seg of parts.slice(0, -1)) {
+          parentFolderPath = parentFolderPath ? `${parentFolderPath}/${seg}` : seg;
+          const existingId = folderIdByPath.get(parentFolderPath);
+          if (existingId) {
+            parentFolderId = existingId;
+            continue;
+          }
+
+          const created = createFolder(nextTree, parentFolderId, seg);
+          nextTree = created.tree;
+          parentFolderId = created.id;
+          folderIdByPath.set(parentFolderPath, parentFolderId);
+          createdFolders.add(parentFolderId);
+        }
+
+        const rawName = ensureExtension(filename, '.md');
+        const { tree: createdTree, id } = createFile(nextTree, parentFolderId, rawName);
+        nextTree = createdTree;
+
+        const text = await f.text();
+        await saveFileText(id, text);
+        if (f.handle) await putLocalFileHandle(id, f.handle);
+
+        if (!firstFileId) firstFileId = id;
+      }
+
+      setTree(nextTree);
+      persistTree(nextTree);
+
+      setExpanded((prev) => {
+        const next = new Set(prev);
+        next.add(treeState0.rootId);
+        next.add(parentId);
+        for (const fid of createdFolders) next.add(fid);
+        persistExpandedFolders([...next]);
+        return next;
+      });
+
+      if (openFirst && firstFileId) {
+        if (isCompact) setFileTreeOpen(false);
+        if (isPortrait) setMobileMain('editor');
+        await openFile(firstFileId);
+      }
+    },
+    [
+      isCompact,
+      isPortrait,
+      openFile,
+      persistExpandedFolders,
+      persistTree,
+      selectedId,
+      tree,
+    ],
+  );
+
+  const doOpenLocal = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+
+    const w = window as unknown as {
+      showOpenFilePicker?: (opts?: any) => Promise<any[]>;
+    };
+
+    if (w.showOpenFilePicker) {
+      try {
+        const handles = await w.showOpenFilePicker({
+          multiple: true,
+          excludeAcceptAllOption: false,
+          types: [
+            {
+              description: 'Markdown',
+              accept: {
+                'text/markdown': ['.md', '.markdown'],
+                'text/plain': ['.txt'],
+              },
+            },
+          ],
+        });
+
+        const files = await Promise.all(
+          handles.map(async (handle) => {
+            try {
+              if (handle?.requestPermission) {
+                await handle.requestPermission({ mode: 'readwrite' });
+              }
+            } catch {
+              // ignore
+            }
+
+            const file = await handle.getFile();
+            return {
+              name: file.name,
+              text: () => file.text(),
+              handle,
+            };
+          }),
+        );
+
+        await importLocalFiles(files, { openFirst: true });
+        return;
+      } catch (e) {
+        // User cancelled or API threw.
+        if ((e as Error)?.name === 'AbortError') return;
+      }
+    }
+
+    // Fallback: classic <input type="file"> (import only, no write-back handle).
+    localFileInputRef.current?.click();
+  }, [importLocalFiles]);
+
+  const doOpenLocalFolder = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+
+    const w = window as unknown as {
+      showDirectoryPicker?: (opts?: any) => Promise<any>;
+    };
+
+    if (w.showDirectoryPicker) {
+      try {
+        const dirHandle = await w.showDirectoryPicker({ mode: 'readwrite' });
+        const rootName = String(dirHandle?.name || 'Imported');
+
+        const files: Array<{ relativePath: string; text: () => Promise<string>; handle?: unknown }> = [];
+
+        const walk = async (handle: any, prefix: string) => {
+          // DirectoryHandle.values() yields FileSystemHandle entries
+          for await (const entry of handle.values()) {
+            if (entry.kind === 'file') {
+              const rel = prefix ? `${prefix}/${entry.name}` : entry.name;
+              if (!isSupportedImportFile(entry.name)) continue;
+
+              try {
+                if (entry?.requestPermission) {
+                  await entry.requestPermission({ mode: 'readwrite' });
+                }
+              } catch {
+                // ignore
+              }
+
+              files.push({
+                relativePath: rel,
+                handle: entry,
+                text: async () => {
+                  const f = await entry.getFile();
+                  return f.text();
+                },
+              });
+            } else if (entry.kind === 'directory') {
+              const nextPrefix = prefix ? `${prefix}/${entry.name}` : entry.name;
+              await walk(entry, nextPrefix);
+            }
+          }
+        };
+
+        await walk(dirHandle, '');
+        await importLocalFolder({ rootFolderName: rootName, files }, { openFirst: true });
+        return;
+      } catch (e) {
+        if ((e as Error)?.name === 'AbortError') return;
+      }
+    }
+
+    // Fallback: <input webkitdirectory> import only.
+    localFolderInputRef.current?.click();
+  }, [importLocalFolder]);
+
+  const onLocalFileInputChange = useCallback(
+    async (ev: React.ChangeEvent<HTMLInputElement>) => {
+      const input = ev.currentTarget;
+      const list = input.files;
+      if (!list || list.length === 0) return;
+
+      const files = Array.from(list).map((file) => ({
+        name: file.name,
+        text: () => file.text(),
+      }));
+
+      // Allow picking the same file again.
+      input.value = '';
+
+      await importLocalFiles(files, { openFirst: true });
+    },
+    [importLocalFiles],
+  );
+
+  const onLocalFolderInputChange = useCallback(
+    async (ev: React.ChangeEvent<HTMLInputElement>) => {
+      const input = ev.currentTarget;
+      const list = input.files;
+      if (!list || list.length === 0) return;
+
+      const items = Array.from(list).map((file) => {
+        const rel = (file as any).webkitRelativePath as string | undefined;
+        return {
+          relativePath: rel && rel.includes('/') ? rel : file.name,
+          text: () => file.text(),
+        };
+      });
+
+      input.value = '';
+
+      // Try to infer root folder name from first path segment.
+      const firstRel = items[0]?.relativePath ?? 'Imported';
+      const rootFolderName = firstRel.split('/').filter(Boolean)[0] ?? 'Imported';
+
+      // Strip the root folder segment if present.
+      const normalized = items.map((it) => {
+        const parts = (it.relativePath || '').split('/').filter(Boolean);
+        const rel = parts.length > 1 ? parts.slice(1).join('/') : (parts[0] ?? '');
+        return { ...it, relativePath: rel || (parts[0] ?? '') };
+      });
+
+      await importLocalFolder({ rootFolderName, files: normalized }, { openFirst: true });
+    },
+    [importLocalFolder],
+  );
+
   const doNewFileAt = useCallback(async (targetId: string | null) => {
     const treeState = requireTree();
     const parentId = resolveParentFolderId(treeState, targetId);
@@ -864,6 +1214,23 @@ export function AppShell() {
 
   return (
     <div className="appRoot">
+      <input
+        ref={localFileInputRef}
+        type="file"
+        accept=".md,.markdown,.txt,text/markdown,text/plain"
+        multiple
+        style={{ display: 'none' }}
+        onChange={onLocalFileInputChange}
+      />
+      <input
+        ref={localFolderInputRef}
+        type="file"
+        multiple
+        style={{ display: 'none' }}
+        onChange={onLocalFolderInputChange}
+        // @ts-expect-error non-standard attribute for picking folders
+        webkitdirectory=""
+      />
       <div className="topbar">
         <div className="brand">
           <div className="brandMark" />
@@ -893,6 +1260,8 @@ export function AppShell() {
           />
           <IconButton icon={<FilePlus2 size={18} />} label={t('toolbar.newFile')} onClick={doNewFile} />
           <IconButton icon={<FolderPlus size={18} />} label={t('toolbar.newFolder')} onClick={doNewFolder} />
+          <IconButton icon={<FolderOpen size={18} />} label={t('toolbar.openLocal')} onClick={doOpenLocal} />
+          <IconButton icon={<FolderInput size={18} />} label={t('toolbar.openLocalFolder')} onClick={doOpenLocalFolder} />
           <IconButton icon={<Pencil size={18} />} label={t('toolbar.rename')} onClick={doRename} />
           <IconButton
             icon={<Trash2 size={18} />}

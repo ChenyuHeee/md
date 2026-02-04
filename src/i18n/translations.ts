@@ -8,6 +8,8 @@ export type I18nKey =
   | 'default.newFolderName'
   | 'toolbar.newFile'
   | 'toolbar.newFolder'
+  | 'toolbar.openLocal'
+  | 'toolbar.openLocalFolder'
   | 'toolbar.rename'
   | 'toolbar.delete'
   | 'toolbar.move'
@@ -73,6 +75,8 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'default.newFolderName': '新建文件夹',
     'toolbar.newFile': '新建文件',
     'toolbar.newFolder': '新建文件夹',
+    'toolbar.openLocal': '打开本地文档',
+    'toolbar.openLocalFolder': '导入文件夹',
     'toolbar.rename': '重命名',
     'toolbar.delete': '删除',
     'toolbar.move': '移动到…',
@@ -138,6 +142,8 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'default.newFolderName': 'New Folder',
     'toolbar.newFile': 'New File',
     'toolbar.newFolder': 'New Folder',
+    'toolbar.openLocal': 'Open local file',
+    'toolbar.openLocalFolder': 'Import folder',
     'toolbar.rename': 'Rename',
     'toolbar.delete': 'Delete',
     'toolbar.move': 'Move to…',
