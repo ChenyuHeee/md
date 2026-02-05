@@ -269,7 +269,8 @@ html[data-theme='dark'] .appRoot {
 }
 
 .modal--settings {
-  height: min(680px, calc(100vh - 36px));
+  height: 680px;
+  max-height: calc(100vh - 36px);
 }
 
 /* Settings modal: keep tabs + footer fixed, and only scroll the panel. */
@@ -310,6 +311,8 @@ html[data-theme='dark'] .appRoot {
   display: flex;
   gap: 6px;
   padding: 4px;
+  min-height: 44px;
+  align-items: center;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface-1) 86%, transparent);
@@ -317,7 +320,8 @@ html[data-theme='dark'] .appRoot {
 
 .settingsTab {
   flex: 1;
-  padding: 8px 10px;
+  height: 36px;
+  padding: 0 10px;
   border-radius: 10px;
   border: 0;
   background: transparent;
@@ -325,6 +329,12 @@ html[data-theme='dark'] .appRoot {
   cursor: pointer;
   font-size: 12px;
   user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .settingsTab:hover {
