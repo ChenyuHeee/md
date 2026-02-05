@@ -311,8 +311,9 @@ html[data-theme='dark'] .appRoot {
   display: flex;
   gap: 6px;
   padding: 4px;
-  min-height: 44px;
+  height: 44px;
   align-items: center;
+  box-sizing: border-box;
   border-radius: 12px;
   border: 1px solid var(--border);
   background: color-mix(in srgb, var(--surface-1) 86%, transparent);
@@ -335,6 +336,7 @@ html[data-theme='dark'] .appRoot {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  box-shadow: 0 0 0 1px transparent inset;
 }
 
 .settingsTab:hover {
