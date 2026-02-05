@@ -11,6 +11,11 @@ const COPY_ITEMS = [
   'assets',
 ];
 
+const PRESERVE_ASSETS_SUBDIRS = [
+  // Keep README screenshots and other hand-managed files.
+  path.join('assets', 'img'),
+];
+
 async function exists(p) {
   try {
     await fs.access(p);
@@ -23,6 +28,19 @@ async function exists(p) {
 async function rimraf(target) {
   if (!(await exists(target))) return;
   await fs.rm(target, { recursive: true, force: true });
+}
+
+async function removeDeployedAssetsPreserving(assetsDir, preserveSubdirs) {
+  if (!(await exists(assetsDir))) return;
+
+  const preserveAbs = new Set(preserveSubdirs.map((p) => path.join(repoRoot, p)));
+  const entries = await fs.readdir(assetsDir);
+  for (const name of entries) {
+    const abs = path.join(assetsDir, name);
+    // Preserve any explicitly pinned subdirectory.
+    if (preserveAbs.has(abs)) continue;
+    await fs.rm(abs, { recursive: true, force: true });
+  }
 }
 
 async function copyRecursive(src, dst) {
@@ -45,8 +63,16 @@ async function main() {
   }
 
   // Remove previous deployed artifacts in repo root (safe allowlist).
+  // NOTE: Do NOT delete repoRoot/assets entirely, as it may contain hand-managed
+  // files (e.g. README screenshots in assets/img). Only remove generated assets.
   for (const item of COPY_ITEMS) {
-    await rimraf(path.join(repoRoot, item));
+    const target = path.join(repoRoot, item);
+    if (item === 'assets') {
+      await fs.mkdir(target, { recursive: true });
+      await removeDeployedAssetsPreserving(target, PRESERVE_ASSETS_SUBDIRS);
+    } else {
+      await rimraf(target);
+    }
   }
 
   // Copy fresh artifacts.

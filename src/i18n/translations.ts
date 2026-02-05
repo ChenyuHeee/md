@@ -79,15 +79,22 @@ export type I18nKey =
   | 'fmt.toolbar'
   | 'fmt.h1'
   | 'fmt.h2'
+  | 'fmt.h3'
+  | 'fmt.h4'
   | 'fmt.bold'
   | 'fmt.italic'
   | 'fmt.underline'
   | 'fmt.strike'
   | 'fmt.code'
+  | 'fmt.codeBlock'
   | 'fmt.quote'
   | 'fmt.ul'
   | 'fmt.ol'
-  | 'fmt.link';
+  | 'fmt.link'
+  | 'fmt.image'
+  | 'fmt.task'
+  | 'fmt.table'
+  | 'fmt.hr';
 
 export const translations: Record<Language, Record<I18nKey, string>> = {
   'zh-CN': {
@@ -118,7 +125,7 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'dialog.settings.sectionPrivacy': '隐私',
     'dialog.settings.ignoreFrontmatter': '预览时忽略 Frontmatter（YAML）',
     'dialog.settings.shortcuts': '快捷键',
-    'dialog.settings.shortcutsTip': '点击输入框后按下组合键进行录制；留空表示禁用该动作。',
+    'dialog.settings.shortcutsTip': '点击输入框后按下组合键进行录制；留空表示禁用该动作。语法类快捷键仅在编辑器聚焦时生效。',
     'dialog.settings.shortcutsReset': '重置为默认',
     'dialog.settings.shortcutsClear': '清空',
     'shortcut.toggleFileTree': '切换文件列表',
@@ -170,15 +177,22 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'fmt.toolbar': '样式工具栏',
     'fmt.h1': '一级标题',
     'fmt.h2': '二级标题',
+    'fmt.h3': '三级标题',
+    'fmt.h4': '四级标题',
     'fmt.bold': '加粗',
     'fmt.italic': '斜体',
     'fmt.underline': '下划线',
     'fmt.strike': '删除线',
     'fmt.code': '行内代码',
+    'fmt.codeBlock': '代码块',
     'fmt.quote': '引用',
     'fmt.ul': '无序列表',
     'fmt.ol': '有序列表',
     'fmt.link': '链接',
+    'fmt.image': '图片',
+    'fmt.task': '任务列表',
+    'fmt.table': '表格',
+    'fmt.hr': '分割线',
   },
   en: {
     'app.name': 'Modang',
@@ -208,7 +222,7 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'dialog.settings.sectionPrivacy': 'Privacy',
     'dialog.settings.ignoreFrontmatter': 'Ignore frontmatter (YAML) in preview',
     'dialog.settings.shortcuts': 'Shortcuts',
-    'dialog.settings.shortcutsTip': 'Click an input, then press a key combo to record. Empty means disabled.',
+    'dialog.settings.shortcutsTip': 'Click an input, then press a key combo to record. Empty means disabled. Syntax shortcuts only work when the editor is focused.',
     'dialog.settings.shortcutsReset': 'Reset to defaults',
     'dialog.settings.shortcutsClear': 'Clear',
     'shortcut.toggleFileTree': 'Toggle file tree',
@@ -260,15 +274,22 @@ export const translations: Record<Language, Record<I18nKey, string>> = {
     'fmt.toolbar': 'Formatting toolbar',
     'fmt.h1': 'Heading 1',
     'fmt.h2': 'Heading 2',
+    'fmt.h3': 'Heading 3',
+    'fmt.h4': 'Heading 4',
     'fmt.bold': 'Bold',
     'fmt.italic': 'Italic',
     'fmt.underline': 'Underline',
     'fmt.strike': 'Strikethrough',
     'fmt.code': 'Inline code',
+    'fmt.codeBlock': 'Code block',
     'fmt.quote': 'Blockquote',
     'fmt.ul': 'Bulleted list',
     'fmt.ol': 'Numbered list',
     'fmt.link': 'Link',
+    'fmt.image': 'Image',
+    'fmt.task': 'Task list',
+    'fmt.table': 'Table',
+    'fmt.hr': 'Horizontal rule',
   },
 };
 

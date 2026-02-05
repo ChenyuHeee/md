@@ -1,9 +1,27 @@
-export type ShortcutScope = 'global' | 'fileTree';
+export type ShortcutScope = 'global' | 'fileTree' | 'editor';
 
 export type ShortcutActionId =
   | 'ui.toggleFileTree'
   | 'ui.togglePreview'
   | 'ui.showSettings'
+  | 'fmt.h1'
+  | 'fmt.h2'
+  | 'fmt.h3'
+  | 'fmt.h4'
+  | 'fmt.bold'
+  | 'fmt.italic'
+  | 'fmt.underline'
+  | 'fmt.strike'
+  | 'fmt.code'
+  | 'fmt.codeBlock'
+  | 'fmt.quote'
+  | 'fmt.ul'
+  | 'fmt.ol'
+  | 'fmt.link'
+  | 'fmt.image'
+  | 'fmt.task'
+  | 'fmt.table'
+  | 'fmt.hr'
   | 'file.new'
   | 'folder.new'
   | 'node.rename'
@@ -24,9 +42,29 @@ export type ShortcutActionDef = {
 };
 
 export const SHORTCUT_DEFS: ShortcutActionDef[] = [
-  { id: 'ui.toggleFileTree', scope: 'global', labelKey: 'shortcut.toggleFileTree', defaultBinding: 'Mod+B' },
+  { id: 'ui.toggleFileTree', scope: 'global', labelKey: 'shortcut.toggleFileTree', defaultBinding: 'Mod+\\' },
   { id: 'ui.togglePreview', scope: 'global', labelKey: 'shortcut.togglePreview', defaultBinding: 'Mod+P' },
   { id: 'ui.showSettings', scope: 'global', labelKey: 'shortcut.showSettings', defaultBinding: 'Mod+,' },
+
+  // Editor scoped: markdown syntax helpers
+  { id: 'fmt.h1', scope: 'editor', labelKey: 'fmt.h1', defaultBinding: 'Mod+Alt+1' },
+  { id: 'fmt.h2', scope: 'editor', labelKey: 'fmt.h2', defaultBinding: 'Mod+Alt+2' },
+  { id: 'fmt.h3', scope: 'editor', labelKey: 'fmt.h3', defaultBinding: 'Mod+Alt+3' },
+  { id: 'fmt.h4', scope: 'editor', labelKey: 'fmt.h4', defaultBinding: 'Mod+Alt+4' },
+  { id: 'fmt.bold', scope: 'editor', labelKey: 'fmt.bold', defaultBinding: 'Mod+B' },
+  { id: 'fmt.italic', scope: 'editor', labelKey: 'fmt.italic', defaultBinding: 'Mod+I' },
+  { id: 'fmt.underline', scope: 'editor', labelKey: 'fmt.underline', defaultBinding: 'Mod+Shift+U' },
+  { id: 'fmt.strike', scope: 'editor', labelKey: 'fmt.strike', defaultBinding: 'Mod+Shift+X' },
+  { id: 'fmt.code', scope: 'editor', labelKey: 'fmt.code', defaultBinding: 'Mod+`' },
+  { id: 'fmt.codeBlock', scope: 'editor', labelKey: 'fmt.codeBlock', defaultBinding: 'Mod+Alt+C' },
+  { id: 'fmt.quote', scope: 'editor', labelKey: 'fmt.quote', defaultBinding: 'Mod+Alt+Q' },
+  { id: 'fmt.ul', scope: 'editor', labelKey: 'fmt.ul', defaultBinding: 'Mod+Alt+L' },
+  { id: 'fmt.ol', scope: 'editor', labelKey: 'fmt.ol', defaultBinding: 'Mod+Alt+Shift+L' },
+  { id: 'fmt.link', scope: 'editor', labelKey: 'fmt.link', defaultBinding: 'Mod+K' },
+  { id: 'fmt.image', scope: 'editor', labelKey: 'fmt.image', defaultBinding: 'Mod+Alt+I' },
+  { id: 'fmt.task', scope: 'editor', labelKey: 'fmt.task', defaultBinding: 'Mod+Alt+T' },
+  { id: 'fmt.table', scope: 'editor', labelKey: 'fmt.table', defaultBinding: 'Mod+Alt+Shift+T' },
+  { id: 'fmt.hr', scope: 'editor', labelKey: 'fmt.hr', defaultBinding: 'Mod+Alt+-' },
 
   { id: 'file.new', scope: 'global', labelKey: 'shortcut.newFile', defaultBinding: 'Mod+N' },
   { id: 'folder.new', scope: 'global', labelKey: 'shortcut.newFolder', defaultBinding: 'Mod+Shift+N' },

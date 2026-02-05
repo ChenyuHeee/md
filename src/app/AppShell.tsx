@@ -18,10 +18,15 @@ import {
   Underline,
   Strikethrough,
   Code,
+  Code2,
   Quote,
   List,
   ListOrdered,
   Link2,
+  Image,
+  Table2,
+  ListTodo,
+  Minus,
 } from 'lucide-react';
 import { FileTree } from '../components/FileTree';
 import { Splitter } from '../components/Splitter';
@@ -453,7 +458,7 @@ function isSupportedImportFile(name: string): boolean {
   );
 
   const applyHeading = useCallback(
-    (level: 1 | 2) => {
+    (level: 1 | 2 | 3 | 4) => {
       if (!editor) return;
       const model = editor.getModel();
       if (!model) return;
@@ -489,6 +494,137 @@ function isSupportedImportFile(name: string): boolean {
     },
     [editor, onChangeContent],
   );
+
+  const applyHr = useCallback(() => {
+    if (!editor) return;
+    const model = editor.getModel();
+    if (!model) return;
+
+    const pos = editor.getPosition();
+    const selection = editor.getSelection();
+    const range =
+      selection ??
+      (pos
+        ? {
+            startLineNumber: pos.lineNumber,
+            startColumn: pos.column,
+            endLineNumber: pos.lineNumber,
+            endColumn: pos.column,
+          }
+        : model.getFullModelRange());
+
+    const text = '\n\n---\n\n';
+    editor.executeEdits('modang-format', [{ range, text, forceMoveMarkers: true }]);
+    editor.focus();
+    onChangeContent(editor.getValue());
+  }, [editor, onChangeContent]);
+
+  const applyCodeBlock = useCallback(() => {
+    if (!editor) return;
+    const model = editor.getModel();
+    if (!model) return;
+
+    const selection = editor.getSelection();
+    const pos = editor.getPosition();
+    const range =
+      selection ??
+      (pos
+        ? {
+            startLineNumber: pos.lineNumber,
+            startColumn: pos.column,
+            endLineNumber: pos.lineNumber,
+            endColumn: pos.column,
+          }
+        : model.getFullModelRange());
+
+    const selectedText = model.getValueInRange(range);
+    const isEmpty = !selectedText;
+    const text = isEmpty ? '```\n\n```\n' : `\n\n\`\`\`\n${selectedText}\n\`\`\`\n\n`;
+    editor.executeEdits('modang-format', [{ range, text, forceMoveMarkers: true }]);
+
+    if (isEmpty) {
+      // Put cursor inside the block (best-effort).
+      editor.setPosition({ lineNumber: range.startLineNumber + 1, column: 1 });
+    }
+
+    editor.focus();
+    onChangeContent(editor.getValue());
+  }, [editor, onChangeContent]);
+
+  const applyImage = useCallback(() => {
+    if (!editor) return;
+    const model = editor.getModel();
+    if (!model) return;
+
+    const selection = editor.getSelection();
+    const pos = editor.getPosition();
+    const range =
+      selection ??
+      (pos
+        ? {
+            startLineNumber: pos.lineNumber,
+            startColumn: pos.column,
+            endLineNumber: pos.lineNumber,
+            endColumn: pos.column,
+          }
+        : model.getFullModelRange());
+
+    const selectedText = model.getValueInRange(range);
+    const isEmpty = !selectedText;
+    const text = isEmpty ? '![]()' : `![${selectedText}]()`;
+    editor.executeEdits('modang-format', [{ range, text, forceMoveMarkers: true }]);
+
+    if (range.startLineNumber === range.endLineNumber) {
+      const startColumn = range.startColumn;
+      if (isEmpty) {
+        editor.setSelection({
+          startLineNumber: range.startLineNumber,
+          startColumn: startColumn + 2,
+          endLineNumber: range.startLineNumber,
+          endColumn: startColumn + 2,
+        });
+      } else {
+        const c = startColumn + selectedText.length + 4;
+        editor.setSelection({
+          startLineNumber: range.startLineNumber,
+          startColumn: c,
+          endLineNumber: range.startLineNumber,
+          endColumn: c,
+        });
+      }
+    }
+
+    editor.focus();
+    onChangeContent(editor.getValue());
+  }, [editor, onChangeContent]);
+
+  const applyTable = useCallback(() => {
+    if (!editor) return;
+    const model = editor.getModel();
+    if (!model) return;
+
+    const pos = editor.getPosition();
+    const selection = editor.getSelection();
+    const range =
+      selection ??
+      (pos
+        ? {
+            startLineNumber: pos.lineNumber,
+            startColumn: pos.column,
+            endLineNumber: pos.lineNumber,
+            endColumn: pos.column,
+          }
+        : model.getFullModelRange());
+
+    const text =
+      '| Column 1 | Column 2 |\n' +
+      '| --- | --- |\n' +
+      '|  |  |\n';
+
+    editor.executeEdits('modang-format', [{ range, text, forceMoveMarkers: true }]);
+    editor.focus();
+    onChangeContent(editor.getValue());
+  }, [editor, onChangeContent]);
 
   const applyLinePrefix = useCallback(
     (prefix: string, detect: RegExp, remove: RegExp = detect) => {
@@ -528,6 +664,11 @@ function isSupportedImportFile(name: string): boolean {
   const applyUnorderedList = useCallback(() => {
     // Toggle -/*/+ list marker at the start of each selected line.
     applyLinePrefix('- ', /^[-*+]\s+/, /^[-*+]\s+/);
+  }, [applyLinePrefix]);
+
+  const applyTaskList = useCallback(() => {
+    // Toggle task list marker at the start of each selected line.
+    applyLinePrefix('- [ ] ', /^\s*[-*+]\s+\[[ xX]\]\s+/, /^\s*[-*+]\s+\[[ xX]\]\s+/);
   }, [applyLinePrefix]);
 
   const applyOrderedList = useCallback(() => {
@@ -1289,6 +1430,12 @@ function isSupportedImportFile(name: string): boolean {
       if (e.defaultPrevented) return;
       if (e.isComposing) return;
 
+      // When a modal is open, don't fire global shortcuts.
+      // This prevents interfering with shortcut recording and other modal inputs.
+      const modalEl = document.querySelector('.modal');
+      const targetNode = e.target as Node | null;
+      if (modalEl && targetNode && modalEl.contains(targetNode)) return;
+
       // Avoid stealing plain typing from inputs; allow modifier shortcuts.
       if (isEditableTarget(e.target) && !(e.metaKey || e.ctrlKey || e.altKey)) return;
 
@@ -1300,6 +1447,7 @@ function isSupportedImportFile(name: string): boolean {
         if (!matchShortcut(binding, e)) continue;
 
         if (def.scope === 'fileTree' && !inFileTreeScope()) continue;
+        if (def.scope === 'editor' && !(editor && editor.hasTextFocus())) continue;
 
         e.preventDefault();
         e.stopPropagation();
@@ -1314,6 +1462,60 @@ function isSupportedImportFile(name: string): boolean {
             return;
           case 'ui.showSettings':
             setShowSettings(true);
+            return;
+          case 'fmt.h1':
+            applyHeading(1);
+            return;
+          case 'fmt.h2':
+            applyHeading(2);
+            return;
+          case 'fmt.h3':
+            applyHeading(3);
+            return;
+          case 'fmt.h4':
+            applyHeading(4);
+            return;
+          case 'fmt.bold':
+            applyWrap('**', '**');
+            return;
+          case 'fmt.italic':
+            applyWrap('*', '*');
+            return;
+          case 'fmt.underline':
+            applyWrap('<u>', '</u>');
+            return;
+          case 'fmt.strike':
+            applyWrap('~~', '~~');
+            return;
+          case 'fmt.code':
+            applyWrap('`', '`');
+            return;
+          case 'fmt.codeBlock':
+            applyCodeBlock();
+            return;
+          case 'fmt.quote':
+            applyLinePrefix('> ', /^>\s?/, /^>\s?/);
+            return;
+          case 'fmt.ul':
+            applyUnorderedList();
+            return;
+          case 'fmt.ol':
+            applyOrderedList();
+            return;
+          case 'fmt.link':
+            applyLink();
+            return;
+          case 'fmt.image':
+            applyImage();
+            return;
+          case 'fmt.task':
+            applyTaskList();
+            return;
+          case 'fmt.table':
+            applyTable();
+            return;
+          case 'fmt.hr':
+            applyHr();
             return;
           case 'file.new':
             void doNewFile();
@@ -1355,6 +1557,17 @@ function isSupportedImportFile(name: string): boolean {
     window.addEventListener('keydown', handler, { capture: true });
     return () => window.removeEventListener('keydown', handler, true);
   }, [
+    applyCodeBlock,
+    applyHeading,
+    applyHr,
+    applyImage,
+    applyLinePrefix,
+    applyLink,
+    applyOrderedList,
+    applyTable,
+    applyTaskList,
+    applyUnorderedList,
+    applyWrap,
     doDelete,
     doExportHtml,
     doExportMarkdown,
@@ -1365,6 +1578,7 @@ function isSupportedImportFile(name: string): boolean {
     doOpenLocalFolder,
     doRename,
     doSaveToLocal,
+    editor,
     isPortrait,
     shortcuts,
     selectedId,
@@ -1536,6 +1750,16 @@ function isSupportedImportFile(name: string): boolean {
                       label={t('fmt.h2')}
                       onClick={() => applyHeading(2)}
                     />
+                    <IconButton
+                      icon={<span className="fmtTag">H3</span>}
+                      label={t('fmt.h3')}
+                      onClick={() => applyHeading(3)}
+                    />
+                    <IconButton
+                      icon={<span className="fmtTag">H4</span>}
+                      label={t('fmt.h4')}
+                      onClick={() => applyHeading(4)}
+                    />
                     <div className="editorToolbarSep" />
                     <IconButton icon={<Bold size={18} />} label={t('fmt.bold')} onClick={() => applyWrap('**', '**')} />
                     <IconButton icon={<Italic size={18} />} label={t('fmt.italic')} onClick={() => applyWrap('*', '*')} />
@@ -1551,6 +1775,7 @@ function isSupportedImportFile(name: string): boolean {
                     />
                     <div className="editorToolbarSep" />
                     <IconButton icon={<Code size={18} />} label={t('fmt.code')} onClick={() => applyWrap('`', '`')} />
+                    <IconButton icon={<Code2 size={18} />} label={t('fmt.codeBlock')} onClick={applyCodeBlock} />
                     <IconButton
                       icon={<Quote size={18} />}
                       label={t('fmt.quote')}
@@ -1558,7 +1783,11 @@ function isSupportedImportFile(name: string): boolean {
                     />
                     <IconButton icon={<List size={18} />} label={t('fmt.ul')} onClick={applyUnorderedList} />
                     <IconButton icon={<ListOrdered size={18} />} label={t('fmt.ol')} onClick={applyOrderedList} />
+                    <IconButton icon={<ListTodo size={18} />} label={t('fmt.task')} onClick={applyTaskList} />
                     <IconButton icon={<Link2 size={18} />} label={t('fmt.link')} onClick={applyLink} />
+                    <IconButton icon={<Image size={18} />} label={t('fmt.image')} onClick={applyImage} />
+                    <IconButton icon={<Table2 size={18} />} label={t('fmt.table')} onClick={applyTable} />
+                    <IconButton icon={<Minus size={18} />} label={t('fmt.hr')} onClick={applyHr} />
                   </div>
                   <div className="editorWrap">
                     <EditorPane
@@ -1642,6 +1871,16 @@ function isSupportedImportFile(name: string): boolean {
                     label={t('fmt.h2')}
                     onClick={() => applyHeading(2)}
                   />
+                  <IconButton
+                    icon={<span className="fmtTag">H3</span>}
+                    label={t('fmt.h3')}
+                    onClick={() => applyHeading(3)}
+                  />
+                  <IconButton
+                    icon={<span className="fmtTag">H4</span>}
+                    label={t('fmt.h4')}
+                    onClick={() => applyHeading(4)}
+                  />
                   <div className="editorToolbarSep" />
                   <IconButton icon={<Bold size={18} />} label={t('fmt.bold')} onClick={() => applyWrap('**', '**')} />
                   <IconButton icon={<Italic size={18} />} label={t('fmt.italic')} onClick={() => applyWrap('*', '*')} />
@@ -1657,6 +1896,7 @@ function isSupportedImportFile(name: string): boolean {
                   />
                   <div className="editorToolbarSep" />
                   <IconButton icon={<Code size={18} />} label={t('fmt.code')} onClick={() => applyWrap('`', '`')} />
+                  <IconButton icon={<Code2 size={18} />} label={t('fmt.codeBlock')} onClick={applyCodeBlock} />
                   <IconButton
                     icon={<Quote size={18} />}
                     label={t('fmt.quote')}
@@ -1664,7 +1904,11 @@ function isSupportedImportFile(name: string): boolean {
                   />
                   <IconButton icon={<List size={18} />} label={t('fmt.ul')} onClick={applyUnorderedList} />
                   <IconButton icon={<ListOrdered size={18} />} label={t('fmt.ol')} onClick={applyOrderedList} />
+                  <IconButton icon={<ListTodo size={18} />} label={t('fmt.task')} onClick={applyTaskList} />
                   <IconButton icon={<Link2 size={18} />} label={t('fmt.link')} onClick={applyLink} />
+                  <IconButton icon={<Image size={18} />} label={t('fmt.image')} onClick={applyImage} />
+                  <IconButton icon={<Table2 size={18} />} label={t('fmt.table')} onClick={applyTable} />
+                  <IconButton icon={<Minus size={18} />} label={t('fmt.hr')} onClick={applyHr} />
                 </div>
                 <div className="editorWrap">
                   <EditorPane
