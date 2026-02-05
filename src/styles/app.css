@@ -272,6 +272,23 @@ html[data-theme='dark'] .appRoot {
   height: min(680px, calc(100vh - 36px));
 }
 
+/* Settings modal: keep tabs + footer fixed, and only scroll the panel. */
+.modal--settings .content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.settingsPanel {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: grid;
+  gap: 12px;
+  padding-top: 12px;
+  overscroll-behavior: contain;
+}
+
 .modal header {
   padding: 12px 14px;
   border-bottom: 1px solid var(--border);
@@ -322,27 +339,27 @@ html[data-theme='dark'] .appRoot {
 }
 
 /* Settings modal: keep scrollbar area stable and make the thumb look consistent */
-.modal--settings .content {
+.modal--settings .settingsPanel {
   scrollbar-gutter: stable;
   scrollbar-width: thin;
 }
 
-.modal--settings .content::-webkit-scrollbar {
+.modal--settings .settingsPanel::-webkit-scrollbar {
   width: 10px;
 }
 
-.modal--settings .content::-webkit-scrollbar-track {
+.modal--settings .settingsPanel::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.modal--settings .content::-webkit-scrollbar-thumb {
+.modal--settings .settingsPanel::-webkit-scrollbar-thumb {
   border-radius: 999px;
   background: color-mix(in srgb, var(--text-2) 28%, transparent);
   border: 3px solid transparent;
   background-clip: content-box;
 }
 
-.modal--settings .content::-webkit-scrollbar-thumb:hover {
+.modal--settings .settingsPanel::-webkit-scrollbar-thumb:hover {
   background: color-mix(in srgb, var(--text-2) 40%, transparent);
   background-clip: content-box;
 }
