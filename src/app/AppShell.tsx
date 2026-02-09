@@ -157,9 +157,41 @@ export function AppShell() {
   const [editor, setEditor] = useState<MonacoEditor.IStandaloneCodeEditor | null>(null);
   const [cursorLine, setCursorLine] = useState<number>(1);
 
+  const editorViewStateByFileIdRef = useRef<Record<string, MonacoEditor.ICodeEditorViewState | null>>({});
+  const shouldFocusEditorOnMountRef = useRef(false);
+
   const pendingFocusLineRef = useRef<number | null>(null);
   const localFileInputRef = useRef<HTMLInputElement | null>(null);
   const localFolderInputRef = useRef<HTMLInputElement | null>(null);
+
+  const saveCurrentEditorViewState = useCallback(() => {
+    if (!editor || !currentFileId) return;
+    editorViewStateByFileIdRef.current[currentFileId] = editor.saveViewState();
+  }, [currentFileId, editor]);
+
+  const handleEditorMount = useCallback(
+    (nextEditor: MonacoEditor.IStandaloneCodeEditor | null) => {
+      setEditor(nextEditor);
+      if (!nextEditor) return;
+      if (!currentFileId) return;
+
+      const vs = editorViewStateByFileIdRef.current[currentFileId];
+      if (vs) {
+        nextEditor.restoreViewState(vs);
+        // Ensure preview highlight stays in sync immediately.
+        const pos = nextEditor.getPosition();
+        if (pos) setCursorLine(pos.lineNumber);
+      }
+
+      if (shouldFocusEditorOnMountRef.current) {
+        shouldFocusEditorOnMountRef.current = false;
+        requestAnimationFrame(() => {
+          nextEditor.focus();
+        });
+      }
+    },
+    [currentFileId],
+  );
 
 function isSupportedImportFile(name: string): boolean {
   const n = (name || '').toLowerCase();
@@ -1457,7 +1489,12 @@ function isSupportedImportFile(name: string): boolean {
             setFileTreeOpen((v) => !v);
             return;
           case 'ui.togglePreview':
-            if (isPortrait) setMobileMain((v) => (v === 'editor' ? 'preview' : 'editor'));
+            if (isPortrait) {
+              // On portrait, switching away unmounts the editor; persist cursor/scroll.
+              if (mobileMain === 'editor') saveCurrentEditorViewState();
+              if (mobileMain === 'preview') shouldFocusEditorOnMountRef.current = true;
+              setMobileMain((v) => (v === 'editor' ? 'preview' : 'editor'));
+            }
             else setPreviewOpen((v) => !v);
             return;
           case 'ui.showSettings':
@@ -1646,7 +1683,11 @@ function isSupportedImportFile(name: string): boolean {
                 : t('ui.togglePreview')
             }
             onClick={() => {
-              if (isPortrait) setMobileMain((v) => (v === 'editor' ? 'preview' : 'editor'));
+              if (isPortrait) {
+                if (mobileMain === 'editor') saveCurrentEditorViewState();
+                if (mobileMain === 'preview') shouldFocusEditorOnMountRef.current = true;
+                setMobileMain((v) => (v === 'editor' ? 'preview' : 'editor'));
+              }
               else setPreviewOpen((v) => !v);
             }}
           />
@@ -1793,7 +1834,7 @@ function isSupportedImportFile(name: string): boolean {
                     <EditorPane
                       value={content}
                       onChange={onChangeContent}
-                      onEditorMount={setEditor}
+                      onEditorMount={handleEditorMount}
                       theme={resolvedTheme === 'dark' ? 'vs-dark' : 'vs'}
                     />
                   </div>
@@ -1914,7 +1955,7 @@ function isSupportedImportFile(name: string): boolean {
                   <EditorPane
                     value={content}
                     onChange={onChangeContent}
-                    onEditorMount={setEditor}
+                    onEditorMount={handleEditorMount}
                     theme={resolvedTheme === 'dark' ? 'vs-dark' : 'vs'}
                   />
                 </div>
