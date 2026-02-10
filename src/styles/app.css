@@ -225,6 +225,15 @@ html[data-theme='dark'] .appRoot {
   line-height: 1.7;
 }
 
+/* KaTeX relies on relative positioning for script placement.
+   If some global styles override span positioning, ^/_ may look inverted.
+   This is a tiny safeguard to ensure inline `top:` offsets take effect. */
+.preview .katex .vlist,
+.preview .katex .vlist > span {
+  display: inline-block;
+  position: relative;
+}
+
 .preview pre {
   padding: 12px;
   overflow: auto;
