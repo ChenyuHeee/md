@@ -1,6 +1,7 @@
 @import './theme.css';
 @import './ui.css';
 @import './app.css';
+@import 'katex/dist/katex.min.css';
 
 * {
   box-sizing: border-box;

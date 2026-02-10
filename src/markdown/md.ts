@@ -1,6 +1,7 @@
 import MarkdownIt from 'markdown-it';
 import hljs from 'highlight.js';
 import taskLists from 'markdown-it-task-lists';
+import katexPlugin from 'markdown-it-katex';
 
 function addSourceLineAttr(token: any) {
   const map = token?.map;
@@ -47,6 +48,7 @@ export function createMarkdownIt() {
 
   md.enable(['table', 'strikethrough']);
   md.use(taskLists, { enabled: true, label: true, labelAfter: true });
+  md.use(katexPlugin);
 
   // Add source line markers for preview sync.
   // We annotate common block-level open tokens.

@@ -9,6 +9,7 @@ import { getAsset } from '../storage/db';
 // highlight.js themes (bundled as raw text)
 import hljsGithubLight from 'highlight.js/styles/github.css?raw';
 import hljsGithubDark from 'highlight.js/styles/github-dark.css?raw';
+import katexCss from 'katex/dist/katex.min.css?raw';
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -108,6 +109,7 @@ th,td{border:1px solid rgba(148,163,184,.35);padding:6px 10px;vertical-align:top
     <title>${safeTitle}</title>
     <style>${baseCss}</style>
     <style>${hljsCss}</style>
+    <style>${katexCss}</style>
   </head>
   <body>
     <div class="exportDoc">
