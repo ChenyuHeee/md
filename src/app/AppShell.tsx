@@ -213,7 +213,14 @@ function isSupportedImportFile(name: string): boolean {
 
       if (handle.queryPermission) {
         const perm = await handle.queryPermission({ mode: 'readwrite' });
-        if (perm !== 'granted') return;
+        if (perm !== 'granted') {
+          if (handle.requestPermission) {
+            const next = await handle.requestPermission({ mode: 'readwrite' });
+            if (next !== 'granted') return;
+          } else {
+            return;
+          }
+        }
       }
 
       const writable = await handle.createWritable();
